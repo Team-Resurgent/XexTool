@@ -78,15 +78,6 @@ Binaries are written to `msvc/build/<platform>/<configuration>/`.
 
 All three are submodules, so remember `--recurse-submodules` when cloning.
 
-## Tools
-
-`tools/stfs_extract.py` unpacks an STFS package (`CON` / `LIVE` / `PIRS`). Title
-updates ship in these, with the `.xexp` inside:
-
-```
-python tools/stfs_extract.py TU_1A581VI_000000K000000.0000000000205 -o update/
-```
-
 ## Credits
 
 XexTool is xorloser's work, 2006-2017. XeCrypt, libLZX and tinyxml2 carry their
