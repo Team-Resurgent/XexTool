@@ -647,9 +647,9 @@ bool XexReader::addImageEntry(const XexImageEntry& header, const DataBlock& data
 
 bool XexReader::encKey(XexKey& dataKey, const XexKey& cryptKey)
 {
-	XeAesContext aes_ctx;
+	XECRYPT_AES_STATE aes_ctx;
 	XeCryptAesKey(&aes_ctx, cryptKey.data);
-	XeCryptAesEcb(&aes_ctx, dataKey.data, dataKey.data, XE_CRYPT_ENC);
+	XeCryptAesEcb(&aes_ctx, dataKey.data, dataKey.data, TRUE);
 	return true;
 }
 bool XexReader::encRetailKey(XexKey& dataKey)
@@ -679,9 +679,9 @@ bool XexReader::encMfgDebugKey(XexKey& dataKey)
 
 bool XexReader::decKey(XexKey& dataKey, const XexKey& cryptKey)
 {
-	XeAesContext aes_ctx;
+	XECRYPT_AES_STATE aes_ctx;
 	XeCryptAesKey(&aes_ctx, cryptKey.data);
-	XeCryptAesEcb(&aes_ctx, dataKey.data, dataKey.data, XE_CRYPT_DEC);
+	XeCryptAesEcb(&aes_ctx, dataKey.data, dataKey.data, FALSE);
 	return true;
 }
 bool XexReader::decRetailKey(XexKey& dataKey)
@@ -731,7 +731,7 @@ bool XexReader::verifySign(const u8* publicKey, const XexSecurityInfo& secInfo)
 	else
 		salt = XexData::XEX_SALT_XEX;
 	
-	if( !XeCryptBnQwBeSigVerify((u64*)sig_ptr, hash, salt, (XeRsaKey*)publicKey) )
+	if( !XeCryptBnQwBeSigVerify((u64*)sig_ptr, hash, salt, (XECRYPT_RSA*)publicKey) )
 		return false;
 	return true;
 }

@@ -65,6 +65,8 @@
       <ConformanceMode>false</ConformanceMode>
     </ClCompile>
     <Link>
+      <AdditionalLibraryDirectories>..\third_party\XeCrypt\$(Platform)\$(Configuration)\;..\third_party\XeCrypt\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>XeCrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
@@ -79,6 +81,8 @@
       <ConformanceMode>false</ConformanceMode>
     </ClCompile>
     <Link>
+      <AdditionalLibraryDirectories>..\third_party\XeCrypt\$(Platform)\$(Configuration)\;..\third_party\XeCrypt\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>XeCrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
@@ -93,6 +97,8 @@
       <ConformanceMode>false</ConformanceMode>
     </ClCompile>
     <Link>
+      <AdditionalLibraryDirectories>..\third_party\XeCrypt\$(Platform)\$(Configuration)\;..\third_party\XeCrypt\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>XeCrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
@@ -107,6 +113,8 @@
       <ConformanceMode>false</ConformanceMode>
     </ClCompile>
     <Link>
+      <AdditionalLibraryDirectories>..\third_party\XeCrypt\$(Platform)\$(Configuration)\;..\third_party\XeCrypt\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>XeCrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
@@ -115,6 +123,7 @@
     <ClCompile Include="..\src\DataBlock.cpp" />
     <ClCompile Include="..\src\PEParser.cpp" />
     <ClCompile Include="..\src\SpecialPatches.cpp" />
+    <ClCompile Include="..\src\XGetopt.c" />
     <ClCompile Include="..\src\Xex.cpp" />
     <ClCompile Include="..\src\XexBasefileDumper.cpp" />
     <ClCompile Include="..\src\XexData.cpp" />

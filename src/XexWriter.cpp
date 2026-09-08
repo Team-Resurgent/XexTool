@@ -1144,9 +1144,9 @@ void XexWriter::convertImageEntryDataToBE(const XexImageEntry& header, DataBlock
 
 bool XexWriter::encKey(XexKey& dataKey, const XexKey& cryptKey)
 {
-	XeAesContext aes_ctx;
+	XECRYPT_AES_STATE aes_ctx;
 	XeCryptAesKey(&aes_ctx, cryptKey.data);
-	XeCryptAesEcb(&aes_ctx, dataKey.data, dataKey.data, XE_CRYPT_ENC);
+	XeCryptAesEcb(&aes_ctx, dataKey.data, dataKey.data, TRUE);
 	return true;
 }
 bool XexWriter::encRetailKey(XexKey& dataKey)
@@ -1191,7 +1191,7 @@ bool XexWriter::updateSign(XexSecurityInfo& secInfo, const u8* publicKey, const 
 		salt = XexData::XEX_SALT_REV;
 	else
 		salt = XexData::XEX_SALT_XEX;
-	XeCryptBnQwBeSigCreate((u64*)sig_ptr, hash.data, salt, (XeRsaKey*)publicKey);
+	XeCryptBnQwBeSigCreate((u64*)sig_ptr, hash.data, salt, (XECRYPT_RSA*)publicKey);
 	if( !XeCryptBnQwNeModExp((u64*)sig_ptr, (u64*)sig_ptr, (u64*)(privateKey+0x390), (u64*)(privateKey+0x10), 0x20) )
 		return false;
 	memcpy(secInfo.imageInfo.signature, sig_ptr, sig_size);
@@ -1244,7 +1244,7 @@ bool XexWriter::updateSectionHashes(XexHvSectionInfo* sections, XexSecurityInfo&
 		// get data to calculate hash over, then calculate hash
 		u8* block_data = new u8[hash_size];
 		basefile.get(block_data, hash_offset, hash_size);
-		XeShaContext sha_ctx;
+		XECRYPT_SHA_STATE sha_ctx;
 		XeCryptShaInit(&sha_ctx);
 		XeCryptShaUpdate(&sha_ctx, block_data, hash_size);
 		delete[] block_data;

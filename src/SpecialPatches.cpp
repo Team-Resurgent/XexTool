@@ -5,7 +5,7 @@
 #include "SpecialPatches.h"
 #include "SpecialPatchesRetailData.h"
 #include "SpecialPatchesXefu.h"
-#include "XeCrypt.h"
+#include "XeCryptCompat.h"
 #include "PEParser.h"
 #include "Endian.h"
 #include <ctype.h>
@@ -1252,7 +1252,7 @@ bool HarmonixCryptPatch(Xex& xex)
 			for(int key_idx=0; key_idx<TCKey_count; key_idx++)
 			{
 				// 1) sha over game-key
-				XeHmacShaContext sha_ctx;
+				XECRYPT_HMAC_SHA_STATE sha_ctx;
 				XeCryptHmacShaInit(&sha_ctx, game_aes_key+key_idx*0x10, 0x10);
 				// 2) sha over "public key from 1bl" data
 				XeCryptHmacShaUpdate(&sha_ctx, G_1BL_PUB_KEY, 0x110);
