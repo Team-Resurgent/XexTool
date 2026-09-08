@@ -142,11 +142,12 @@ The original project compiled `$(COMMON_PATH)\XGetopt.c`, which is not present
 in the source it was taken from -- only the header survived. `src/XGetopt.c` is
 a fresh implementation of the same interface following POSIX getopt semantics.
 
-### The XeCrypt dependency is not published yet
+The streaming HMAC has been contributed to the XeCrypt fork and the submodule
+points at it, so a fresh clone builds:
 
-The streaming HMAC is committed to `D:\Git\XeCrypt` but not pushed, so the
-submodule still points at a commit without it. Until that is pushed and the
-pointer moved, a fresh clone will not link.
+```
+git clone --recurse-submodules https://github.com/Team-Resurgent/XexTool.git
+```
 
 ## Still to do
 
