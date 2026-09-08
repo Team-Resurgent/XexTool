@@ -19,6 +19,20 @@ Nothing in the original included it, and no project file referenced it --
 `XexTool.vcxproj` links `XeCrypt`, `ldic` and `tinyxml` only. It accounted for
 roughly three quarters of the source tree.
 
+## XEX uses raw LZX, not CAB
+
+Worth stating because it governs which libraries are even the right shape:
+XexTool contains no reference to CAB. The compression callback receives raw LZX
+blocks and XexTool applies its own framing -- a big-endian 16-bit compressed
+length per block, then the whole stream split into 0x10000 hashed blocks with
+`XexHash` headers. The window is 0x8000 and input is fed in 0x8000 blocks.
+
+So what is needed is a **raw LZX codec**, buffer in and buffer out. A CAB-level
+compressor would be the wrong shape even if one existed, since the LZX stream
+would be wrapped in a container we do not want. This is also why libmspack's
+decoder works here at all: `libXexUnpack` drives `lzxd_init` and
+`lzxd_decompress` directly, with no CAB layer.
+
 ## ldic cannot simply be replaced
 
 `ldic` is a 47-file LZX codec with both an encoder and a decoder, and XexTool
