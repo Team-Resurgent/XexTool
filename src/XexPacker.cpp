@@ -3,7 +3,7 @@
 // 
 
 #include "XexPacker.h"
-#include "XeCrypt.h"
+#include "XeCryptCompat.h"
 #include <string.h>
 #include <stdio.h>
 #include <vector>
@@ -17,13 +17,13 @@
 bool XexPacker::decryptDelta(DataBlock& basefile, const XexKey& xex_key, const XexKey& delta_key, const XexKey& patched_key,)
 {
 	// prepare decryption by setting decryption key
-	XeAesContext aes_ctx;
+	XECRYPT_AES_STATE aes_ctx;
 	XexKey crypt_key;
 	XeCryptAesKey(&aes_ctx, patched_key.data);
-//	XeCryptAesEcb(ctx, delta_key.data, xex_key.data, XE_CRYPT_DEC);
-//	XeCryptAesEcb(ctx, patch_headers.secInfo.encKey, patch_headers.data, XE_CRYPT_DEC);
-	XeCryptAesEcb(ctx, delta_key.data, xex_key.data, XE_CRYPT_DEC);
-	XeCryptAesEcb(ctx, patch_headers.secInfo.encKey, patch_headers.data, XE_CRYPT_DEC);
+//	XeCryptAesEcb(ctx, delta_key.data, xex_key.data, FALSE);
+//	XeCryptAesEcb(ctx, patch_headers.secInfo.encKey, patch_headers.data, FALSE);
+	XeCryptAesEcb(ctx, delta_key.data, xex_key.data, FALSE);
+	XeCryptAesEcb(ctx, patch_headers.secInfo.encKey, patch_headers.data, FALSE);
 	
 	XeCryptAesKey(&aes_ctx, crypt_key.data);
 	
@@ -35,7 +35,7 @@ bool XexPacker::decryptDelta(DataBlock& basefile, const XexKey& xex_key, const X
 	// decrypt data
 	u8 ivec[16];
 	memset(ivec, 0, 16);
-	XeCryptAesCbc(&aes_ctx, crypt_buff, crypt_size, crypt_buff, ivec, XE_CRYPT_DEC);
+	XeCryptAesCbc(&aes_ctx, crypt_buff, crypt_size, crypt_buff, ivec, FALSE);
 	
 	// set decrypted data
 	basefile.set(crypt_buff, 0, crypt_size);
@@ -49,7 +49,7 @@ bool XexPacker::decryptDelta(DataBlock& basefile, const XexKey& xex_key, const X
 bool XexPacker::decrypt(DataBlock& basefile, const XexKey& decKey)
 {
 	// prepare decryption by setting decryption key
-	XeAesContext aes_ctx;
+	XECRYPT_AES_STATE aes_ctx;
 	XeCryptAesKey(&aes_ctx, decKey.data);
 	u8 ivec[16];
 	memset(ivec, 0, 16);
@@ -60,7 +60,7 @@ bool XexPacker::decrypt(DataBlock& basefile, const XexKey& decKey)
 	basefile.get(crypt_buff, 0, crypt_size);
 	
 	// decrypt data
-	XeCryptAesCbc(&aes_ctx, crypt_buff, crypt_size, crypt_buff, ivec, XE_CRYPT_DEC);
+	XeCryptAesCbc(&aes_ctx, crypt_buff, crypt_size, crypt_buff, ivec, FALSE);
 	
 	// set decrypted data
 	basefile.set(crypt_buff, 0, crypt_size);
@@ -73,7 +73,7 @@ bool XexPacker::decrypt(DataBlock& basefile, const XexKey& decKey)
 bool XexPacker::encrypt(DataBlock& basefile, const XexKey& encKey)
 {
 	// prepare encryption by setting encryption key
-	XeAesContext aes_ctx;
+	XECRYPT_AES_STATE aes_ctx;
 	XeCryptAesKey(&aes_ctx, encKey.data);
 	u8 ivec[16];
 	memset(ivec, 0, 16);
@@ -84,7 +84,7 @@ bool XexPacker::encrypt(DataBlock& basefile, const XexKey& encKey)
 	basefile.get(crypt_buff, 0, crypt_size);
 	
 	// encrypt data
-	XeCryptAesCbc(&aes_ctx, crypt_buff, crypt_size, crypt_buff, ivec, XE_CRYPT_ENC);
+	XeCryptAesCbc(&aes_ctx, crypt_buff, crypt_size, crypt_buff, ivec, TRUE);
 	
 	// set encrypted data
 	basefile.set(crypt_buff, 0, crypt_size);

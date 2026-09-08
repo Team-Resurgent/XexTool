@@ -11,7 +11,7 @@ typedef unsigned short		u16;
 typedef unsigned int		u32;
 typedef unsigned long long	u64;
 
-typedef signed char			s8;
+typedef char				s8;	// matches xecryptTypes.h; distinct from signed char in C++
 typedef signed short		s16;
 typedef signed int			s32;
 typedef signed long long	s64;

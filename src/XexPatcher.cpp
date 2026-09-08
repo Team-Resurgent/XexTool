@@ -4,7 +4,7 @@
 
 #include "XexPatcher.h"
 #include "Xex.h"
-#include "XeCrypt.h"
+#include "XeCryptCompat.h"
 #include "XexData.h"
 #include "Endian.h"
 #include "XexHeader.h"
@@ -43,7 +43,7 @@ bool XexPatcher::isCorrectPatch(const Xex& sourceXex, const Xex& patchXex) const
 	u8 patch_hash[20];
 	patch_desc.get(patch_hash, offsetof(DeltaPatchDescriptor, sourceHash), 20);
 	u8 source_hash[20];
-	XeShaContext sha_ctx;
+	XECRYPT_SHA_STATE sha_ctx;
 	XeCryptShaInit(&sha_ctx);
 	XeCryptShaUpdate(&sha_ctx, source_sig, 0x100);
 	XeCryptShaFinal(&sha_ctx, source_hash, 20);
@@ -108,7 +108,7 @@ bool XexPatcher::patch(Xex& outputXex, const Xex& sourceXex, const Xex& patchXex
 	// get key from patch xex file
 	// get and decrypt the target xex image key
 //	patchXex.getImageKey(xex_patch_key);
-/*	XeAesContext aes_ctx;
+/*	XECRYPT_AES_STATE aes_ctx;
 	if( patchXex.isManufacturingUtility() ||
 		patchXex.isManufacturingSupportTool() )
 	{
@@ -124,12 +124,12 @@ bool XexPatcher::patch(Xex& outputXex, const Xex& sourceXex, const Xex& patchXex
 		else
 			XeCryptAesKey(&aes_ctx, XexData::XEX_DEBUG_KEY);
 	}
-	XeCryptAesEcb(&aes_ctx, xex_target_key.data, xex_target_key.data, XE_CRYPT_DEC);
+	XeCryptAesEcb(&aes_ctx, xex_target_key.data, xex_target_key.data, FALSE);
 */	
 	// decrypt xex patch key using decrypted target key
-	XeAesContext aes_ctx;
+	XECRYPT_AES_STATE aes_ctx;
 	XeCryptAesKey(&aes_ctx, xex_target_key.data);
-	XeCryptAesEcb(&aes_ctx, xex_patch_key.data, xex_patch_key.data, XE_CRYPT_DEC);
+	XeCryptAesEcb(&aes_ctx, xex_patch_key.data, xex_patch_key.data, FALSE);
 	
 	// get basefile data to create target basefile
 	DataBlock basefile_source, basefile_patch, basefile_target;
@@ -338,9 +338,9 @@ bool XexPatcher::unpackDeltaBasefile(DataBlock& basefileTarget, s32 targetImageS
 		u8 ivec[16] = {0};
 		u8* data = new u8[basefilePatch.size()];
 		basefilePatch.get(data, 0, basefilePatch.size());
-		XeAesContext aes_ctx;
+		XECRYPT_AES_STATE aes_ctx;
 		XeCryptAesKey(&aes_ctx, decKey);
-		XeCryptAesCbc(&aes_ctx, data, basefilePatch.size(), data, ivec, XE_CRYPT_DEC);
+		XeCryptAesCbc(&aes_ctx, data, basefilePatch.size(), data, ivec, FALSE);
 		basefile_patch_decrypted.set(data, 0, basefilePatch.size());
 //FILE* fd;
 //fd = fopen("basefile_patch-dec.bin", "wb");

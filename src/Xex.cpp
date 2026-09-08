@@ -8,7 +8,7 @@
 #include <string.h>
 #include "Xex.h"
 #include "XexDefines.h"
-#include "XeCrypt.h"
+#include "XeCryptCompat.h"
 #include "PEParser.h"
 
 #define SET_FLAG(toggle, flags, flag)	(toggle) ? ((flags) |= (flag)) : ((flags) &= (~(flag)))
