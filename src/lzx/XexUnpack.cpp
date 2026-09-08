@@ -1,5 +1,6 @@
 #include <cstdarg>
 #include <cstring>
+#include <vector>
 
 #include "XexUnpack.h"
 #include <iostream>
@@ -199,7 +200,59 @@ bool unpack(uint8_t* inputData, uint32_t inputDataSize, uint8_t* outputData, uin
     return result;
 }
 
+bool unpackDelta(uint8_t* inputData, uint32_t inputDataSize, uint8_t* outputData, uint32_t outputDataSize,
+                 uint32_t windowSize, uint8_t* referenceData, uint32_t referenceDataSize, int skipHeader) {
+    bool result = false;
+    struct mspack_system *sys = &mem_system;
+    struct lzxd_stream *context = nullptr;
+
+    // The producer seeds the whole window: the reference sits at the end and
+    // everything before it is zero. Reproduce that exactly, and declare the
+    // full window as reference data -- otherwise matches reaching into the
+    // zeroed region are rejected as being beyond the stream.
+    std::vector<uint8_t> dictionary(windowSize, 0);
+    if (referenceDataSize > windowSize) return false;
+    memcpy(dictionary.data() + windowSize - referenceDataSize,
+           referenceData, referenceDataSize);
+
+    mem_buf source    = {inputData,          inputDataSize, "source"};
+    mem_buf output    = {outputData,         outputDataSize, "output"};
+    mem_buf reference = {dictionary.data(),  windowSize,    "reference"};
+    mem_file *in, *out, *ref = nullptr;
+
+    in  = (mem_file *) sys->open(sys, (const char *) &source, MSPACK_SYS_OPEN_READ);
+    out = (mem_file *) sys->open(sys, (const char *) &output, MSPACK_SYS_OPEN_WRITE);
+
+    // Plain LZX, not the LZX DELTA bitstream: these are ordinary LZX streams
+    // over a window seeded with the region being patched.
+    context = lzxd_init(sys, (struct mspack_file *) in, (struct mspack_file *) out,
+                        getBitSize(windowSize), 0, windowSize, (off_t) outputDataSize, 0);
+    if (context != nullptr)
+    {
+        if (skipHeader) context->header_read = 1;
+        int st = MSPACK_ERR_OK;
+        ref = (mem_file *) sys->open(sys, (const char *) &reference, MSPACK_SYS_OPEN_READ);
+        st = lzxd_set_reference_data(context, sys, (struct mspack_file *) ref, windowSize);
+        if (st == MSPACK_ERR_OK && lzxd_decompress(context, (off_t) outputDataSize) == MSPACK_ERR_OK)
+            result = true;
+        lzxd_free(context);
+    }
+    if (ref) sys->close((struct mspack_file *) ref);
+    sys->close((struct mspack_file *) in);
+    sys->close((struct mspack_file *) out);
+    return result;
+}
+
 TR_EXPORT void LZXUnpack(uint8_t* inputData, uint32_t inputDataSize, uint8_t* outputData, uint32_t outputDataSize, uint32_t windowSize, uint32_t &error) {
     bool result = unpack(inputData, inputDataSize, outputData, outputDataSize, windowSize);
     error = result ? 0 : -1;
+}
+
+TR_EXPORT void LZXUnpackDelta(uint8_t* inputData, uint32_t inputDataSize,
+                              uint8_t* outputData, uint32_t outputDataSize,
+                              uint32_t windowSize,
+                              uint8_t* referenceData, uint32_t referenceDataSize,
+                              int skipHeader, uint32_t &error) {
+    error = unpackDelta(inputData, inputDataSize, outputData, outputDataSize,
+                        windowSize, referenceData, referenceDataSize, skipHeader) ? 0 : 1;
 }

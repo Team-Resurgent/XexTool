@@ -25,7 +25,7 @@ public:
 private:
 	Xex* m_pTargetXex;			// target xex
 
-	bool XexpDeltaDecompress(const LdicContext& ctx, DataBlock& output, const u8* inputBuff, s32 inputSize);
+	bool XexpDeltaDecompress(s32 windowSize, DataBlock& output, const u8* inputBuff, s32 inputSize);
 	bool unpackDeltaHeaders(DataBlock& headersOut, const DataBlock& headersIn, const DataBlock& patchInfo);
 	bool unpackDeltaBasefile(DataBlock& basefileTarget, s32 targetImageSize, const DataBlock& basefileSource, const DataBlock& basefilePatch, const DataBlock& basefilePatchInfo, const u8* decKey);
 };
