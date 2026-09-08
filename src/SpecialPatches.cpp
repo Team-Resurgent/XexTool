@@ -184,7 +184,7 @@ bool DoUpdatePatchFix(Xex& xex, FILE* printStream)
 				{
 					// need to patch "\0u\0p\0d\0a\0t\0e\0:\0x\0y\0z\0\0" to "\0D\0:\0x\0y\0z\0\0"
 					int len = 0;
-					for(len=0; (char*)buff[i+1+len]!=0; len+=2)
+					for(len=0; buff[i+1+len]!=0; len+=2)
 					{} // just counting here folks...
 					if(len > 1024*2)
 						continue;
@@ -1298,10 +1298,11 @@ bool DanceCryptPatch(Xex& xex, u32 patchFlags, FILE* printStream)
 	}
 	
 	bool result = HarmonixCryptPatch(xex);
-	if(result)
+	if(result) {
 		if(printStream) fprintf(printStream, "  patched dance central crypt to work on devkits\n");
-	else
+	} else {
 		if(printStream) fprintf(printStream, "  error patching dance central crypt to work on devkits\n");
+	}
 	return result;
 }
 
@@ -1320,10 +1321,11 @@ bool RockbandCryptPatch(Xex& xex, u32 patchFlags, FILE* printStream)
 	}
 	
 	bool result = HarmonixCryptPatch(xex);
-	if(result)
+	if(result) {
 		if(printStream) fprintf(printStream, "  patched rockband crypt to work on devkits\n");
-	else
+	} else {
 		if(printStream) fprintf(printStream, "  error patching rockband crypt to work on devkits\n");
+	}
 	return result;
 }
 
@@ -1445,10 +1447,11 @@ bool XboxPatches(Xex& xex, u32 patchFlags, FILE* printStream)
 		}
 	}
 	
-	if(result)
+	if(result) {
 		if(printStream) fprintf(printStream, "  patched allow unsupported xbox1 games\n");
-	else
+	} else {
 		if(printStream) fprintf(printStream, "  error patching allow unsupported xbox1 games\n");
+	}
 	
 	if(result)
 		xex.setBasefile(basefile);

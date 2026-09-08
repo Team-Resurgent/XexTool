@@ -65,8 +65,7 @@ bool XexResourceDumper::dump(const char* dirname)
 		res_name[0] = 0;
 		if( !m_pXex->getResource(res_idx, res_addr, res_size, res_name) )
 			return false;
-		if(res_name == 0 ||
-			strlen(res_name) == 0 )
+		if( strlen(res_name) == 0 )
 			sprintf(res_name, "resource_%d", res_idx);
 
 		// extract resource data
