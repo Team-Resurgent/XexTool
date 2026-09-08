@@ -8,3 +8,5 @@ Debug/
 Release/
 x64/
 build/
+build-cmake/
+build/

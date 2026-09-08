@@ -49,6 +49,7 @@ typedef int                 BOOL;
 #if defined WIN32 || _WIN32 || WIN64 || _WIN64
 	// windows specific stuff
 	#define STRICMP		_stricmp
+	#define STRNICMP	_strnicmp
 	#define FSEEK64		_fseeki64
 	#define FTELL64		_ftelli64
 	#define DIRSEPCHAR	'\\'
@@ -59,6 +60,7 @@ typedef int                 BOOL;
 #else
 	// "other systems" - yes there probably should be some system specific checks here...
 	#define STRICMP		strcasecmp
+	#define STRNICMP	strncasecmp
 	#define FSEEK64		fseeko
 	#define FTELL64		ftello
 	#define DIRSEPCHAR	'/'
@@ -66,6 +68,10 @@ typedef int                 BOOL;
 	
 	#define _FILE_OFFSET_BITS 64
 	#define __USE_FILE_OFFSET64
+
+	#include <strings.h>
+	#include <sys/stat.h>
+	#include <sys/types.h>
 #endif
 
 

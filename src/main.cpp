@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <direct.h>
 #include "XexTool.h"
 #include "XGetopt.h"
 #include "tinyxml2.h"
@@ -654,7 +653,7 @@ int main(int argc, char* argv[])
 	if( do_dump_resources )
 	{
 		// ensure the dir to dump to exists
-		_mkdir(res_dirname);
+		MKDIR(res_dirname);
 		
 		// dump resources
 		XexResourceDumper res_creator(xex);
@@ -1065,7 +1064,7 @@ int main(int argc, char* argv[])
 			printf("Info file is invalid or corrupted\n");
 			return 1;
 		}
-		if( _stricmp(p_root->Value(), "xex")!=0 )
+		if( STRICMP(p_root->Value(), "xex")!=0 )
 		{
 			printf("Info file has unsupported root node: %s\n", p_root->Value());
 			return 1;
@@ -1085,40 +1084,40 @@ int main(int argc, char* argv[])
 		// scan through and parse each entry
 		for(tinyxml2::XMLElement* p_elem=p_root->FirstChildElement(); p_elem; p_elem=p_elem->NextSiblingElement())
 		{
-			if(		 _stricmp(p_elem->Value(), "moduleflags") == 0 )
+			if(		 STRICMP(p_elem->Value(), "moduleflags") == 0 )
 			{
 				u32 flags = strtoul(p_elem->Attribute("flags"), 0, 0);
 				xex.setModuleFlags(flags);
 			}
-			else if( _stricmp(p_elem->Value(), "imageflags") == 0 )
+			else if( STRICMP(p_elem->Value(), "imageflags") == 0 )
 			{
 				u32 flags = strtoul(p_elem->Attribute("flags"), 0, 0);
 				xex.setImageFlags(flags);
 			}
-			else if( _stricmp(p_elem->Value(), "regions") == 0 )
+			else if( STRICMP(p_elem->Value(), "regions") == 0 )
 			{
 				u32 flags = strtoul(p_elem->Attribute("flags"), 0, 0);
 				xex.setRegions(flags);
 			}
-			else if( _stricmp(p_elem->Value(), "mediatypes") == 0 )
+			else if( STRICMP(p_elem->Value(), "mediatypes") == 0 )
 			{
 				u32 flags = strtoul(p_elem->Attribute("flags"), 0, 0);
 				xex.setMediaTypes(flags);
 			}
-			else if( _stricmp(p_elem->Value(), "systemflags") == 0 )
+			else if( STRICMP(p_elem->Value(), "systemflags") == 0 )
 			{
 				u32 flags = strtoul(p_elem->Attribute("flags"), 0, 0);
 				xex.setSystemFlags(flags);
 			}
-			else if( _stricmp(p_elem->Value(), "systemflags2") == 0 )
+			else if( STRICMP(p_elem->Value(), "systemflags2") == 0 )
 			{
 				u32 flags = strtoul(p_elem->Attribute("flags"), 0, 0);
 				xex.setSystemFlags2(flags);
 			}
-			else if( _stricmp(p_elem->Value(), "machine") == 0 )
+			else if( STRICMP(p_elem->Value(), "machine") == 0 )
 			{
-				bool is_retail = _stricmp(p_elem->Attribute("type"), "retail")==0;
-				bool is_debug  = _stricmp(p_elem->Attribute("type"), "debug" )==0;
+				bool is_retail = STRICMP(p_elem->Attribute("type"), "retail")==0;
+				bool is_debug  = STRICMP(p_elem->Attribute("type"), "debug" )==0;
 				if( is_retail )
 					xex.setRetail();
 				else if( is_debug )
@@ -1129,7 +1128,7 @@ int main(int argc, char* argv[])
 					return 1;
 				}
 			}
-			else if( _stricmp(p_elem->Value(), "mediaid") == 0 )
+			else if( STRICMP(p_elem->Value(), "mediaid") == 0 )
 			{
 				MediaId media_id = {0};
 				int media_id_len = get_data_from_hex_string( p_elem->Attribute("id"), media_id.data, sizeof(media_id));
@@ -1140,7 +1139,7 @@ int main(int argc, char* argv[])
 				}
 				xex.setMediaId(media_id);
 			}
-			else if( _stricmp(p_elem->Value(), "multidiscmediaid") == 0 )
+			else if( STRICMP(p_elem->Value(), "multidiscmediaid") == 0 )
 			{
 				MediaId media_id = {0};
 				int media_id_len = get_data_from_hex_string( p_elem->Attribute("id"), media_id.data, sizeof(media_id));
@@ -1151,35 +1150,35 @@ int main(int argc, char* argv[])
 				}
 				xex.addMultidiscMediaId(media_id);
 			}
-			else if( _stricmp(p_elem->Value(), "mediaid32") == 0 )
+			else if( STRICMP(p_elem->Value(), "mediaid32") == 0 )
 			{
 				ExecutionId exec_id = {0};
 				xex.getExecutionId(exec_id);
 				exec_id.mediaId = strtoul(p_elem->Attribute("id"), 0, 0);
 				xex.setExecutionId(exec_id);
 			}
-			else if( _stricmp(p_elem->Value(), "version") == 0 )
+			else if( STRICMP(p_elem->Value(), "version") == 0 )
 			{
 				ExecutionId exec_id = {0};
 				xex.getExecutionId(exec_id);
 				exec_id.version.dword = strtoul(p_elem->Attribute("ver32"), 0, 0);
 				xex.setExecutionId(exec_id);
 			}
-			else if( _stricmp(p_elem->Value(), "baseversion") == 0 )
+			else if( STRICMP(p_elem->Value(), "baseversion") == 0 )
 			{
 				ExecutionId exec_id = {0};
 				xex.getExecutionId(exec_id);
 				exec_id.baseVersion.dword = strtoul(p_elem->Attribute("ver32"), 0, 0);
 				xex.setExecutionId(exec_id);
 			}
-			else if( _stricmp(p_elem->Value(), "titleid") == 0 )
+			else if( STRICMP(p_elem->Value(), "titleid") == 0 )
 			{
 				ExecutionId exec_id = {0};
 				xex.getExecutionId(exec_id);
 				exec_id.titleId = strtoul(p_elem->Attribute("id"), 0, 0);
 				xex.setExecutionId(exec_id);
 			}
-			else if( _stricmp(p_elem->Value(), "execother") == 0 )
+			else if( STRICMP(p_elem->Value(), "execother") == 0 )
 			{
 				ExecutionId exec_id = {0};
 				xex.getExecutionId(exec_id);
@@ -1190,19 +1189,19 @@ int main(int argc, char* argv[])
 				exec_id.maxDiscs = (other_ids >>  0) & 0xFF;
 				xex.setExecutionId(exec_id);
 			}
-			else if( _stricmp(p_elem->Value(), "savegameid") == 0 )
+			else if( STRICMP(p_elem->Value(), "savegameid") == 0 )
 			{
 				ExecutionId exec_id = {0};
 				xex.getExecutionId(exec_id);
 				exec_id.saveGameId = strtoul(p_elem->Attribute("id"), 0, 0);
 				xex.setExecutionId(exec_id);
 			}
-			else if( _stricmp(p_elem->Value(), "alttitleid") == 0 )
+			else if( STRICMP(p_elem->Value(), "alttitleid") == 0 )
 			{
 				u32 title_id = strtoul(p_elem->Attribute("id"), 0, 0);
 				xex.addAltTitleId(title_id);
 			}
-			else if( _stricmp(p_elem->Value(), "discprofileid") == 0 )
+			else if( STRICMP(p_elem->Value(), "discprofileid") == 0 )
 			{
 				DiscProfileId id = {0};
 				int id_len = get_data_from_hex_string( p_elem->Attribute("id"), id.data, sizeof(id));
@@ -1213,7 +1212,7 @@ int main(int argc, char* argv[])
 				}
 				xex.setDiscProfileId(id);
 			}
-			else if( _stricmp(p_elem->Value(), "lankey") == 0 )
+			else if( STRICMP(p_elem->Value(), "lankey") == 0 )
 			{
 				LANKey key = {0};
 				int key_len = get_data_from_hex_string( p_elem->Attribute("id"), key.data, sizeof(key));
@@ -1224,7 +1223,7 @@ int main(int argc, char* argv[])
 				}
 				xex.setLANKey(key);
 			}
-			else if( _stricmp(p_elem->Value(), "logodata") == 0 )
+			else if( STRICMP(p_elem->Value(), "logodata") == 0 )
 			{
 				const char* p_data_str = p_elem->Attribute("id");
 				int data_str_len = strlen(p_data_str);
@@ -1242,13 +1241,13 @@ int main(int argc, char* argv[])
 				xex.setLogoData(logo_data);
 				delete[] p_data_buff;
 			}
-			else if( _stricmp(p_elem->Value(), "boundingpath") == 0 )
+			else if( STRICMP(p_elem->Value(), "boundingpath") == 0 )
 			{
 				char bound_path[260] = {0};
 				strcpy(bound_path, p_elem->Attribute("path"));
 				xex.setBoundingPath(bound_path);
 			}
-			else if( _stricmp(p_elem->Value(), "boundingdeviceid") == 0 )
+			else if( STRICMP(p_elem->Value(), "boundingdeviceid") == 0 )
 			{
 				u8 bound_id[20] = {0};
 				int id_len = get_data_from_hex_string( p_elem->Attribute("id"), bound_id, sizeof(bound_id) );
@@ -1259,7 +1258,7 @@ int main(int argc, char* argv[])
 				}
 				xex.setBoundingDeviceId(bound_id);
 			}
-			else if( _stricmp(p_elem->Value(), "gameratings") == 0 )
+			else if( STRICMP(p_elem->Value(), "gameratings") == 0 )
 			{
 				GameRatings ratings = {0};
 				int ratings_len = get_data_from_hex_string( p_elem->Attribute("data"), (u8*)&ratings, sizeof(ratings) );
@@ -1270,7 +1269,7 @@ int main(int argc, char* argv[])
 				}
 				xex.setGameRatings(ratings);
 			}
-			else if( _stricmp(p_elem->Value(), "spa") == 0 )
+			else if( STRICMP(p_elem->Value(), "spa") == 0 )
 			{
 				const char* p_name = p_elem->Attribute("name");
 				if( p_name == NULL )
