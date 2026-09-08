@@ -9,7 +9,6 @@
 #include "Endian.h"
 #include "XexHeader.h"
 #include <assert.h>
-#include "Ldic.h"
 #include "XexUnpack.h"
 
 typedef struct {
@@ -203,7 +202,7 @@ fclose(fd);
 
 // unpack all delta-blocks within the given data buffers
 // 
-// args:	ldic context
+// args:	window size
 //			output for decompressed data
 //			size of output buffer
 //			input data to decompress
