@@ -73,7 +73,7 @@ later, which writes to `msvc/build/<platform>/<configuration>/`.
 
 | | |
 |---|---|
-| [XeCrypt](https://github.com/Team-Resurgent/XeCrypt) | AES, SHA, HMAC and RSA |
+| [XeCrypt](https://github.com/Team-Resurgent/XeCrypt) | AES, SHA, HMAC and RSA, by cOz |
 | [libLZX](https://github.com/Team-Resurgent/libLZX) | LZX compression and decompression |
 | [tinyxml2](https://github.com/leethomason/tinyxml2) | XML output |
 
@@ -81,5 +81,5 @@ All three are submodules, so remember `--recurse-submodules` when cloning.
 
 ## Credits
 
-XexTool is xorloser's work, 2006-2017. XeCrypt, libLZX and tinyxml2 carry their
-own licences; see their respective directories.
+XexTool is xorloser's work, 2006-2017. XeCrypt is by cOz. XeCrypt, libLZX and
+tinyxml2 carry their own licences; see their respective directories.
