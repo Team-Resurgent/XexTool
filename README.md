@@ -149,11 +149,15 @@ skipped   : 0
 `AvatarEditor.xex` at 16 MB, `dash.xex`, `xam.xex`, `xshell.xex` and the rest
 of the dashboard.
 
-The two delta paths are not converted. libmspack has `lzxd_set_reference_data`,
-which is the equivalent of `LdicSetWindowData`, but nothing in that XDK recovery
-is delta-compressed and it contains no `.xexp` patches, so a conversion could
-not be checked. Converting delta-patch code that cannot be tested is how silent
-corruption gets shipped.
+The two delta paths are not converted yet. libmspack has
+`lzxd_set_reference_data`, the equivalent of `LdicSetWindowData`, so they are
+convertible -- but converting delta-patch code without being able to run it is
+how silent corruption gets shipped.
+
+Title updates ship as STFS packages with the patch inside, so `tools/stfs_extract.py`
+unpacks them. A GTA IV update yields a `default.xexp` that XexTool reports as
+`Delta Compressed`, which is the fixture those paths need; applying it also
+requires the base game's `default.xex`.
 
 libmspack covers the first row completely, including `lzxd_set_reference_data`,
 the equivalent of `LdicSetWindowData` that XEXP delta patching depends on. It
@@ -184,6 +188,7 @@ LZX encoders may make different valid choices -- so the checks are behavioural:
 
 ```
 src/                    XexTool sources
+tools/                  helper scripts
 src/lzx/                buffer shims over libmspack's lzxd
 msvc/                   Visual Studio solution and projects
 third_party/XeCrypt     submodule: github.com/Team-Resurgent/XeCrypt
