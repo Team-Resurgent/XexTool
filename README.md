@@ -11,7 +11,7 @@ vendored dependencies replaced by submodules and its dead weight removed.
 | XeCrypt | vendored copy (14 files) | submodule, `third_party/XeCrypt` |
 | tinyxml | vendored, built as a separate lib | vendored, `third_party/tinyxml` |
 | mbedtls | vendored (449 files) | **removed** |
-| ldic | vendored LZX codec (47 files) | libmspack, `third_party/mspack` (8 files) |
+| ldic | vendored LZX codec (47 files) | **kept** -- see below |
 
 ### mbedtls was unused
 
@@ -19,40 +19,38 @@ Nothing in the original included it, and no project file referenced it --
 `XexTool.vcxproj` links `XeCrypt`, `ldic` and `tinyxml` only. It accounted for
 roughly three quarters of the source tree.
 
-## Replacing ldic with libmspack
+## ldic cannot simply be replaced
 
-`ldic` is a 47-file LZX codec with both an encoder and a decoder, but XexTool
-only ever calls the decoder, from `XexPacker.cpp` (`unpackCompressed`,
-`unpackDeltaCompressed`) and `XexPatcher.cpp` (`XexpDeltaDecompress`).
+`ldic` is a 47-file LZX codec with both an encoder and a decoder, and XexTool
+uses **both**:
 
-The libmspack subset under `third_party/mspack` covers every one of those calls
-in 8 files:
+| direction | ldic calls | call sites |
+|---|---|---|
+| decompress | `LdicCreateDecompression`, `LdicSetWindowData`, `LdicDecompress`, `LdicResetDecompression`, `LdicDestroyDecompression` | `XexPacker::unpackCompressed`, `unpackDeltaCompressed`, `XexPatcher::XexpDeltaDecompress` |
+| compress | `LdicCreateCompression`, `LdicCompress`, `LdicFlushCompressorOutput`, `LdicDestroyCompression` | `XexPacker::packCompressed` |
 
-| ldic | libmspack |
-|---|---|
-| `LdicCreateDecompression` | `lzxd_init` |
-| `LdicSetWindowData` | `lzxd_set_reference_data` |
-| `LdicDecompress` | `lzxd_decompress` |
-| `LdicDestroyDecompression` | `lzxd_free` |
-| `LdicResetDecompression` | re-initialise; no direct equivalent |
+The libmspack subset in `third_party/mspack` is `lzxd.c` -- decompression only.
+It covers the first row completely, including `lzxd_set_reference_data`, which
+is the equivalent of `LdicSetWindowData` that XEXP delta patching depends on.
+It cannot cover the second row at all.
 
-`lzxd_set_reference_data` is the one that matters -- seeding the LZX window is
-what XEXP delta patches need, and without it the patcher could not be ported.
+So swapping wholesale to libmspack would **remove** `packCompressed`, and with
+it the ability to create compressed XEXs. Three options:
 
-`src/lzx/XexUnpack.*` is the in-memory wrapper from libXexUnpack, which adapts
-mspack's file callbacks to plain buffers and exposes
-`LZXUnpack(in, inSize, out, outSize, windowSize, &error)`.
+1. **Keep ldic.** It works and has both halves. The mspack swap buys nothing.
+2. **Hybrid**: libmspack for decompression, ldic's encoder for compression.
+   Sheds most of ldic's 47 files but keeps the encoder.
+3. **Find a library with both.** libmspack upstream has no LZX compressor.
 
-Note this is `lzxd.c` only: **decompression**. Creating compressed XEXs, which
-RXDK-360 will need in order to turn a linked image into a XEX, still requires an
-LZX compressor from somewhere.
+`third_party/mspack` and `src/lzx/XexUnpack.*` are kept in the tree for option 2,
+but nothing uses them yet.
 
 ## Still to do
 
-### Rewire the ldic call sites
+### Decide the ldic question
 
-`XexPacker.cpp` and `XexPatcher.cpp` still call the `Ldic*` API and include
-`Ldic.h`; they need to move onto the wrapper above.
+Nothing is rewired yet; `XexPacker.cpp` and `XexPatcher.cpp` still include
+`Ldic.h`, and `ldic` itself has not been copied into this tree.
 
 ### Build files
 
