@@ -21,7 +21,7 @@
 #include <cstring>
 using namespace std;
 
-const char G_TITLE[]="XexTool v6.7  -  xorloser 2006-2017 (Build " __TIMESTAMP__ ")";
+const char G_TITLE[]="XexTool v7.0  -  xorloser 2006-2017 (Build " __TIMESTAMP__ ")";
 const char G_USAGE[]="Usage:    XexTool <options> <xex filename>\n"
 					"Options:\n"
 					"          -l = print extended info list about xex file\n"
