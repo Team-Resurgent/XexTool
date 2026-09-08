@@ -53,8 +53,8 @@ bool XexGameInfo::SPAGetGameName(const DataBlock& spaData, char* gameName, int g
 	int num_entries = spaData.get32be(8);
 	
 	// Extract the icon and string from the chunk table
-	DataChunk strings_chunk;
-	DataChunk icon_chunk;
+	DataChunk strings_chunk = {};
+	DataChunk icon_chunk = {};
 	icon_chunk.offset = 0;
 	strings_chunk.offset = 0;
 	for(int i=0; i<num_entries; i++)
@@ -137,8 +137,8 @@ bool XexGameInfo::SPAGetGameIcon(const DataBlock& spaData, DataBlock& gameIcon) 
 	int num_entries = spaData.get32be(8);
 	
 	// Extract the icon and string from the chunk table
-	DataChunk strings_chunk;
-	DataChunk icon_chunk;
+	DataChunk strings_chunk = {};
+	DataChunk icon_chunk = {};
 	icon_chunk.offset = 0;
 	strings_chunk.offset = 0;
 	for(int i=0; i<num_entries; i++)

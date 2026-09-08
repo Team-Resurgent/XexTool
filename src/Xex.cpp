@@ -40,7 +40,6 @@ Xex::Xex() :
 	m_isCompressed(false),
 	m_isDeltaCompressed(false),
 	m_hasOriginalLoadAddress(false),
-	m_deltaPatch(NULL),
 	m_baseReference(NULL),
 	m_discProfileId(NULL),
 	m_boundingPath(NULL),
@@ -61,6 +60,7 @@ Xex::Xex() :
 	m_ratings(NULL),
 	m_lanKey(NULL),
 	m_logoData(NULL),
+	m_deltaPatch(NULL),
 	m_exportsByName(NULL)
 {
 	memset(m_mediaId.data, 0, sizeof(MediaId));
@@ -1015,7 +1015,7 @@ void Xex::addImportLibrary(const char* name, XexVersion32 version, XexVersion32 
 {
 	ImportLibraryData lib_data;
 	strncpy(lib_data.name, name, sizeof(lib_data.name));
-	lib_data.name[sizeof(lib_data.name)] = 0;
+	lib_data.name[sizeof(lib_data.name)-1] = 0;
 	lib_data.version = version;
 	lib_data.minVersion = minVersion;
 	lib_data.addresses = addresses;
@@ -1043,7 +1043,7 @@ bool Xex::setImportLibrary(s32 index, const char* name, XexVersion32 version, Xe
 		return false;
 	ImportLibraryData lib_data;
 	strncpy(lib_data.name, name, sizeof(lib_data.name));
-	lib_data.name[sizeof(lib_data.name)] = 0;
+	lib_data.name[sizeof(lib_data.name)-1] = 0;
 	lib_data.version = version;
 	lib_data.minVersion = minVersion;
 	lib_data.addresses = addresses;

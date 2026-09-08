@@ -1417,7 +1417,7 @@ void XexHeader::getImageEntry(XexImageEntry* headers, u8* data, s32 dataSize, s3
 		DataBlock import_libs;
 		const s32 names_size = 1024;
 		char* names = new char[names_size];
-		char* name_ptr = names;
+		char lib_name[64];
 		memset(names, 0, names_size);
 		XexVersion32 version;
 		XexVersion32 min_version;
@@ -1431,13 +1431,16 @@ void XexHeader::getImageEntry(XexImageEntry* headers, u8* data, s32 dataSize, s3
 		s32 name_size = 0;
 		for(s32 lib_num=0; lib_num<m_pXex->numImportLibraries(); lib_num++)
 		{
-			if( m_pXex->getImportLibrary(lib_num, name_ptr, version, min_version, addresses, module_number, module_index) )
+			if( m_pXex->getImportLibrary(lib_num, lib_name, version, min_version, addresses, module_number, module_index) )
 			{
 				// add import libraries name sizes
 				if( module_index > lib_idx_handled )
 				{
-					name_size += ((s32)strlen(name_ptr) + 4) & (-4);
-					name_ptr = names + name_size;
+					s32 name_len = (s32)strlen(lib_name);
+					if( name_size + (((name_len + 4) & (-4))) > names_size )
+						break;					// no room left in the name table
+					memcpy(names + name_size, lib_name, name_len);
+					name_size += (name_len + 4) & (-4);
 					lib_idx_handled = module_index;
 				}
 			}
@@ -1453,7 +1456,7 @@ void XexHeader::getImageEntry(XexImageEntry* headers, u8* data, s32 dataSize, s3
 		s32 lib_offset = 12 + name_size;
 		for(s32 lib_num=0; lib_num<m_pXex->numImportLibraries(); lib_num++)
 		{
-			if( !m_pXex->getImportLibrary(lib_num, names, version, min_version, addresses, module_number, module_index) )
+			if( !m_pXex->getImportLibrary(lib_num, lib_name, version, min_version, addresses, module_number, module_index) )
 				break;
 			s32 num_addresses = addresses.size() / 4;
 			s32 lib_size = sizeof(ImportLibraryEntry) - 4 + addresses.size();
@@ -1558,7 +1561,9 @@ void XexHeader::getImageEntry(XexImageEntry* headers, u8* data, s32 dataSize, s3
 			{
 				s32 offset = 4 + lib_num * sizeof(StaticLibraryEntry);
 				lib_ver.set(name, offset + offsetof(StaticLibraryEntry, name), 8);
-				lib_ver.set64(*(u64*)&version, offset + offsetof(StaticLibraryEntry, version));
+				u64 version_bits;
+				memcpy(&version_bits, &version, sizeof(version_bits));
+				lib_ver.set64(version_bits, offset + offsetof(StaticLibraryEntry, version));
 			}
 		}
 		lib_ver.set32(lib_ver.size(), 0);
