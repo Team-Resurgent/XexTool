@@ -81,5 +81,5 @@ All three are submodules, so remember `--recurse-submodules` when cloning.
 
 ## Credits
 
-XexTool is xorloser's work, 2006-2017. XeCrypt is by cOz. XeCrypt, libLZX and
+XexTool is xorloser's work, 2006-2017. XeCrypt by cOz, libLZX and
 tinyxml2 carry their own licences; see their respective directories.
