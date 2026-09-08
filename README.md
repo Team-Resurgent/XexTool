@@ -149,15 +149,37 @@ skipped   : 0
 `AvatarEditor.xex` at 16 MB, `dash.xex`, `xam.xex`, `xshell.xex` and the rest
 of the dashboard.
 
-The two delta paths are not converted yet. libmspack has
-`lzxd_set_reference_data`, the equivalent of `LdicSetWindowData`, so they are
-convertible -- but converting delta-patch code without being able to run it is
-how silent corruption gets shipped.
+The two delta paths are **not** converted, and the attempt is worth recording
+because the obvious mapping does not work.
 
-Title updates ship as STFS packages with the patch inside, so `tools/stfs_extract.py`
-unpacks them. A GTA IV update yields a `default.xexp` that XexTool reports as
-`Delta Compressed`, which is the fixture those paths need; applying it also
-requires the base game's `default.xex`.
+`tools/stfs_extract.py` unpacks a title update to get a fixture: a GTA IV
+update yields a `default.xexp` that XexTool reports as `Delta Compressed`, and
+the base `default.xex` comes out of the disc image with `xdvdfs copy-out`.
+Patching with ldic gives a 12857344-byte result, sha256 `8268FDC9...`, so there
+is something to compare against.
+
+libmspack does have `lzxd_set_reference_data`, the counterpart of
+`LdicSetWindowData`. But it is gated behind the `is_delta` flag, and that flag
+is not a neutral switch:
+
+- it restricts the window to 2^17..2^25, while XEX delta blocks use 32KiB (2^15);
+- it selects the **LZX DELTA bitstream**, which carries a chunk_size field and
+  extended match lengths that plain LZX does not have.
+
+So XEX delta blocks are not LZX DELTA. They are ordinary LZX streams decoded
+over a window pre-seeded with the region being patched -- two different things
+that libmspack conflates, since the only effect reference data has on decoding
+is to widen one match-offset bounds check.
+
+Removing that gate lets the stream initialise, but decoding then fails with
+`match offset beyond LZX stream`. The likely cause is header framing: libmspack
+reads the one-time "intel filesize" header on each newly created stream, whereas
+ldic resets between blocks without re-reading one, so the leading bits are
+consumed as a header that is not there and every subsequent offset is wrong.
+Confirming that means reading ldic's reset path against libmspack's block
+header handling.
+
+Until that is resolved the delta paths stay on ldic, which works.
 
 libmspack covers the first row completely, including `lzxd_set_reference_data`,
 the equivalent of `LdicSetWindowData` that XEXP delta patching depends on. It
