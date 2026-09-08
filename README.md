@@ -111,7 +111,7 @@ removing it later is deleting one project, one solution entry and one reference.
 ### Porting to this XeCrypt
 
 It builds and runs: `msvc/build/x64/Release/XexTool.exe`, reporting
-`XexTool v6.7 - xorloser 2006-2017`.
+`XexTool v7.0`.
 
 Getting there meant reconciling XexTool with the team-Resurgent XeCrypt, whose
 API differs from the copy the original vendored:
