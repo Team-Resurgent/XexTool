@@ -1,6 +1,6 @@
 # XexTool
 
-<p align="center"><b>Xbox 360 XEX inspection, extraction and patching — cross-platform dependencies, modern toolchain</b></p>
+<p align="center"><b>Inspect, extract and patch Xbox 360 XEX executables</b></p>
 
 <p align="center">
   <a href="https://github.com/Team-Resurgent/XexTool/blob/main/LICENSE.md"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
@@ -19,9 +19,39 @@
 
 ---
 
-XexTool reads, dumps and patches Xbox 360 XEX executables. It originates with
-xorloser's tool and keeps its behaviour and command line; what has changed is
-everything underneath.
+## Usage
+
+```
+XexTool <options> <xex filename>
+```
+
+| option | |
+|---|---|
+| `-l` | print extended info about the xex |
+| `-p <xexp>` | patch the xex with a title update |
+| `-b <file>` | dump the basefile |
+| `-i <file>` | dump basefile info to an IDC script |
+| `-d <dir>` | dump all resources to a directory |
+| `-o <xex>` | write the result to a new file rather than altering the input |
+| `-a <path>` | add a bounding path |
+| `-u` | fix a patched xex so it no longer needs the separate patch file |
+| `-s <flags>` | apply title-specific patches; `0` lists what is available |
+| `-r <flags>` | remove limitations -- media, region, region locks, console id, dates and others; `a` removes all |
+| `-m d\|r` | force devkit or retail |
+| `-c u\|c\|b` | force uncompressed, compressed or binary |
+| `-e u\|e` | force unencrypted or encrypted |
+| `-x <flags>` | extract metadata as XML -- title, title id, icon, media id, regions and more |
+| `-z g\|s <file>` | get or set xex info |
+
+Options combine, for example `-m d -r mrl`. With no options a short info list is
+printed. Without `-o` the input file is modified in place.
+
+```
+XexTool -l default.xex
+XexTool -b basefile.bin default.xex
+XexTool -p update.xexp -o patched.xex default.xex
+XexTool -r a -o unlocked.xex default.xex
+```
 
 ## Building
 
@@ -29,105 +59,32 @@ everything underneath.
 git clone --recurse-submodules https://github.com/Team-Resurgent/XexTool.git
 ```
 
-Open `msvc/XexTool.sln` in Visual Studio 2022 or later, or:
+Open `msvc/XexTool.sln` in Visual Studio 2022 or later, or build from a command
+prompt:
 
 ```
 msbuild msvc/XexTool.sln /p:Configuration=Release /p:Platform=x64
 ```
 
-Three projects: `XexTool`, `lzx` (libLZX) and `xecrypt`. tinyxml2 is a single
-translation unit and is compiled into `XexTool` directly.
+Binaries are written to `msvc/build/<platform>/<configuration>/`.
 
-## What changed
+## Dependencies
 
-| component | before | now |
-|---|---|---|
-| sources | `xex_stuff/XexTool/src` + `distro/common` | `src/` |
-| XeCrypt | vendored copy | submodule |
-| tinyxml | vendored, unmaintained | tinyxml2, submodule |
-| mbedtls | vendored, 449 files | **removed**, unused |
-| ldic | vendored LZX codec, 47 files | **removed**, replaced by libLZX |
-| libmspack | -- | briefly used for decoding, then replaced by libLZX |
-
-Compression and decompression now both go through
-[libLZX](https://github.com/Team-Resurgent/libLZX), which needed two additions:
-
-- `lzx_create_compression_window()` / `lzx_create_decompression_window()`, since
-  both sides were pinned to `LZX_WINDOW_SIZE` of 128KiB while a XEX records a
-  32KiB window, and a decoder must use the window the encoder did;
-- `lzx_set_window_data()`, which seeds the decoder's window the way ldic's
-  `LZX_DecodeInsertDictionary` did -- reference at the end, zeros before it --
-  which is what XEX delta patches need.
-
-### mbedtls was unused
-
-Nothing included it and no project file referenced it. It was roughly three
-quarters of the original source tree.
-
-### tinyxml to tinyxml2
-
-The two are not API-compatible in general, but the usage here was three
-declarations in `main.cpp`. `LoadFile`, `RootElement`, `Value`,
-`FirstChildElement`, `NextSiblingElement` and `Attribute` all exist in tinyxml2
-under the same names, so the port was the type names, the namespace, and
-`LoadFile` returning `XMLError`.
-
-### Porting to this XeCrypt
-
-The team-Resurgent XeCrypt's API differs from the copy that was vendored:
-
-| previously | here |
+| | |
 |---|---|
-| `XeShaContext` | `XECRYPT_SHA_STATE` |
-| `XeHmacShaContext` | `XECRYPT_HMAC_SHA_STATE` |
-| `XeAesContext` | `XECRYPT_AES_STATE` |
-| `XeRsaKey` | `XECRYPT_RSA` -- identical layout |
-| signature buffer as `u64*` | `PXECRYPT_SIG`, the same 256 bytes |
-| `XE_CRYPT_ENC` / `XE_CRYPT_DEC` | a `BOOL fEncrypt`; the enum was `DEC = 0`, `ENC = 1` |
-| `XeCryptHmacShaInit` / `Update` / `Final` | contributed to the XeCrypt fork |
+| [XeCrypt](https://github.com/Team-Resurgent/XeCrypt) | AES, SHA, HMAC and RSA |
+| [libLZX](https://github.com/Team-Resurgent/libLZX) | LZX compression and decompression |
+| [tinyxml2](https://github.com/leethomason/tinyxml2) | XML output |
 
-`src/types.h` defined `s8` as `signed char` and `xecryptTypes.h` as `char`,
-which are distinct types in C++; `types.h` now matches. `src/XeCryptCompat.h`
-supplies const-qualified overloads where this XeCrypt takes mutable buffers.
+All three are submodules, so remember `--recurse-submodules` when cloning.
 
-### XGetopt
+## Tools
 
-The original compiled `$(COMMON_PATH)\XGetopt.c`, absent from the source this
-was taken from. `src/XGetopt.c` is a fresh implementation of the same interface.
-
-## XEX uses raw LZX, not CAB
-
-There is no CAB anywhere: the compressor emits raw LZX blocks and XexTool
-applies its own framing -- a big-endian 16-bit compressed length per block, then
-the stream split into 0x10000 hashed blocks with `XexHash` headers, over a
-32KiB window. libLZX frames its own output as
-`{ uint16 compressed; uint16 uncompressed; }` little-endian, so the compressor
-output is reframed on the way out.
-
-## Verification
-
-Against a reference binary built from the last commit that still used ldic:
+`tools/stfs_extract.py` unpacks an STFS package (`CON` / `LIVE` / `PIRS`). Title
+updates ship in these, with the `.xexp` inside:
 
 ```
-basefile dump, all 35 XEXs in the September 2013 XDK recovery : 35 identical
-GTA IV title update applied to its base xex                   : identical
-compress with libLZX, decompress, compare to the original     : identical
-```
-
-30 of those 35 are compressed and the update is delta-compressed, so the plain
-and delta decode paths and the compressor are all exercised. `dash.xex`
-compresses to 6418432 bytes against ldic's 6416384.
-
-## Layout
-
-```
-src/                    XexTool sources
-tools/                  helper scripts
-src/lzx/                LZX decode wrapper over libLZX
-msvc/                   Visual Studio solution and projects
-third_party/XeCrypt     submodule: github.com/Team-Resurgent/XeCrypt
-third_party/libLZX      submodule: github.com/Team-Resurgent/libLZX
-third_party/tinyxml2    submodule: github.com/leethomason/tinyxml2
+python tools/stfs_extract.py TU_1A581VI_000000K000000.0000000000205 -o update/
 ```
 
 ## Credits
