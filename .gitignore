@@ -1,0 +1,10 @@
+*.obj
+*.lib
+*.exe
+*.pdb
+*.ilk
+*.user
+Debug/
+Release/
+x64/
+build/

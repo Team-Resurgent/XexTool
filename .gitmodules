@@ -1,0 +1,3 @@
+[submodule "third_party/XeCrypt"]
+	path = third_party/XeCrypt
+	url = https://github.com/team-Resurgent/XeCrypt.git
