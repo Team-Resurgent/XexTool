@@ -111,10 +111,34 @@ libmspack's decoder suits: `src/lzx/XexUnpack.*` drives `lzxd_init` and
 
 `ldic` is a 47-file LZX codec with an encoder and a decoder, and both are used:
 
-| direction | call sites |
-|---|---|
-| decompress | `XexPacker::unpackCompressed`, `unpackDeltaCompressed`, `XexPatcher::XexpDeltaDecompress` |
-| compress | `XexPacker::packCompressed` |
+| direction | call sites | status |
+|---|---|---|
+| decompress | `XexPacker::unpackCompressed` | **on libmspack** |
+| decompress | `XexPacker::unpackDeltaCompressed`, `XexPatcher::XexpDeltaDecompress` | still ldic |
+| compress | `XexPacker::packCompressed` | still ldic; nothing to replace it |
+
+`unpackCompressed` is converted and verified. XexTool's 16-bit sizes are its own
+framing: the payloads they delimit form one continuous LZX stream whose window
+carries across them, so the stream is gathered and decompressed in a single
+pass. Decompressing per chunk would reset the window and produce garbage.
+
+The check that matters is the cross-check -- compress with ldic, decompress with
+libmspack:
+
+```
+$ XexTool -c c -o compressed.xex dash.xex     # ldic compressor
+$ XexTool -b out.bin compressed.xex           # libmspack decompressor
+16941056 bytes, sha256 06A8446849184331DC1B513A894C08AD3F160DCEC8473F70CDCAE9F54B7C86F9
+```
+
+identical to the basefile dumped straight from the uncompressed original. A
+round trip through libmspack alone would not have caught a stream-format
+misreading; this does.
+
+The two delta paths are not converted. libmspack has `lzxd_set_reference_data`,
+which is the equivalent of `LdicSetWindowData`, but converting them without an
+XEXP patch file to verify against would be changing code that cannot be
+tested.
 
 libmspack covers the first row completely, including `lzxd_set_reference_data`,
 the equivalent of `LdicSetWindowData` that XEXP delta patching depends on. It
