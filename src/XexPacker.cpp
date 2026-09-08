@@ -11,6 +11,7 @@
 #include "Endian.h"
 #include "XexImageEntryTypes.h"
 #include "Ldic.h"
+#include "XexUnpack.h"
 
 /*
 // decrypt basefile in place
@@ -218,19 +219,18 @@ fclose(fd);
 */	
 	// unpack decrypted basefile
 	bool success = true;
-	LdicContext ctx = NULL;
 	u8* block_data = NULL;
 	u8* uncomp_data = NULL;
-	
+
 	basefileOut.clear();
 	s32 window_size = unpackInfo.get32(8);
-	s32 source_size = window_size;
 	s32 max_uncomp_size = 0;
-	if( !LdicCreateDecompression(ctx, source_size, window_size, max_uncomp_size) )
-	{
-		success = false;
-		goto finish_up;
-	}
+
+	// The 16-bit sizes below are XexTool's own framing; the payloads they
+	// delimit form one continuous LZX stream whose window carries across them.
+	// Gather that stream here and decompress it in one pass at the end, rather
+	// than per chunk, which would reset the window.
+	std::vector<u8> lzxStream;
 	
 	// unpacks blocks at a time, each block has multiple smaller blocks to decompress too
 //s32 accumulate;
@@ -294,14 +294,8 @@ fclose(fd);
 			s32 uncomp_size = 0x8000;
 			if(uncomp_size > imageSize-output_offset)
 				uncomp_size = imageSize-output_offset;
-			if( !LdicDecompress(ctx, comp_ptr, comp_size, uncomp_ptr, uncomp_size))
-			{
-				success = false;
-				goto finish_up;
-			}
-			
-			// copy decompressed data to output
-			basefileOut.set(uncomp_ptr, output_offset, uncomp_size);
+
+			lzxStream.insert(lzxStream.end(), comp_ptr, comp_ptr + comp_size);
 			output_offset += uncomp_size;
 			comp_ptr += comp_size;
 		}
@@ -313,10 +307,22 @@ fclose(fd);
 		block_data = NULL;
 	}
 	
+	// decompress the whole stream in one pass
+	if(success && imageSize > 0)
+	{
+		std::vector<u8> out((size_t)imageSize);
+		u32 lzxError = 0;
+		LZXUnpack(lzxStream.data(), (u32)lzxStream.size(),
+		          out.data(), (u32)imageSize, (u32)window_size, lzxError);
+		if(lzxError != 0)
+			success = false;
+		else
+			basefileOut.set(out.data(), 0, imageSize);
+	}
+
 finish_up:
 	if(block_data) delete[] block_data;
 	if(uncomp_data)delete[] uncomp_data;
-	if(ctx) LdicDestroyDecompression(ctx);
 	return success;
 }
 
