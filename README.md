@@ -11,7 +11,7 @@ vendored dependencies replaced by submodules and its dead weight removed.
 | XeCrypt | vendored copy (14 files) | submodule, `third_party/XeCrypt` |
 | tinyxml | vendored, built as a separate lib | vendored, `third_party/tinyxml` |
 | mbedtls | vendored (449 files) | **removed** |
-| ldic | vendored LZX codec (47 files) | **to be replaced** (see below) |
+| ldic | vendored LZX codec (47 files) | libmspack, `third_party/mspack` (8 files) |
 
 ### mbedtls was unused
 
@@ -19,27 +19,40 @@ Nothing in the original included it, and no project file referenced it --
 `XexTool.vcxproj` links `XeCrypt`, `ldic` and `tinyxml` only. It accounted for
 roughly three quarters of the source tree.
 
+## Replacing ldic with libmspack
+
+`ldic` is a 47-file LZX codec with both an encoder and a decoder, but XexTool
+only ever calls the decoder, from `XexPacker.cpp` (`unpackCompressed`,
+`unpackDeltaCompressed`) and `XexPatcher.cpp` (`XexpDeltaDecompress`).
+
+The libmspack subset under `third_party/mspack` covers every one of those calls
+in 8 files:
+
+| ldic | libmspack |
+|---|---|
+| `LdicCreateDecompression` | `lzxd_init` |
+| `LdicSetWindowData` | `lzxd_set_reference_data` |
+| `LdicDecompress` | `lzxd_decompress` |
+| `LdicDestroyDecompression` | `lzxd_free` |
+| `LdicResetDecompression` | re-initialise; no direct equivalent |
+
+`lzxd_set_reference_data` is the one that matters -- seeding the LZX window is
+what XEXP delta patches need, and without it the patcher could not be ported.
+
+`src/lzx/XexUnpack.*` is the in-memory wrapper from libXexUnpack, which adapts
+mspack's file callbacks to plain buffers and exposes
+`LZXUnpack(in, inSize, out, outSize, windowSize, &error)`.
+
+Note this is `lzxd.c` only: **decompression**. Creating compressed XEXs, which
+RXDK-360 will need in order to turn a linked image into a XEX, still requires an
+LZX compressor from somewhere.
+
 ## Still to do
 
-### Replace ldic
+### Rewire the ldic call sites
 
-`ldic` is an LZX codec with both an encoder and a decoder. XexTool only ever
-calls the decoder -- `LdicCreateDecompression`, `LdicSetWindowData`,
-`LdicDecompress`, `LdicResetDecompression`, `LdicDestroyDecompression` -- from
-`XexPacker.cpp` (`unpackCompressed`, `unpackDeltaCompressed`) and
-`XexPatcher.cpp` (`XexpDeltaDecompress`). So the tool as it stands unpacks XEXs
-but never creates compressed ones.
-
-That matters for choosing a replacement:
-
-- To preserve **current** behaviour, an LZX **decompressor** is enough.
-- To **create** compressed XEXs later, an LZX **compressor** is needed, and
-  that is the harder half to find.
-
-The intended replacement was "mspack", but `github.com/fhanau/mspack` is a
-mass-spectrometry data compressor, unrelated to Stuart Caie's libmspack -- a
-name collision. The correct library still needs to be identified before this
-swap can happen.
+`XexPacker.cpp` and `XexPatcher.cpp` still call the `Ldic*` API and include
+`Ldic.h`; they need to move onto the wrapper above.
 
 ### Build files
 
