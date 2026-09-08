@@ -1,0 +1,150 @@
+name: Build XexTool
+
+on:
+  push:
+    branches: [main, master, v2]
+    tags:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Create a GitHub Release with this tag (e.g. v7.0.0). Leave empty to build only.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-windows:
+    name: Build (${{ matrix.platform }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [x64, Win32]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build
+        shell: pwsh
+        run: |
+          msbuild msvc\XexTool.sln `
+            /p:Configuration=Release `
+            /p:Platform=${{ matrix.platform }} `
+            /m /v:minimal /nologo
+          if ($LASTEXITCODE -ne 0) { throw "build failed" }
+
+      - name: Verify the binary runs
+        shell: pwsh
+        run: |
+          $exe = "msvc\build\${{ matrix.platform }}\Release\XexTool.exe"
+          if (-not (Test-Path $exe)) { throw "missing $exe" }
+          # XexTool exits non-zero when given no arguments, so check the banner
+          $banner = (& $exe 2>&1 | Select-Object -First 1)
+          Write-Host $banner
+          if ($banner -notmatch 'XexTool v') { throw "unexpected banner: $banner" }
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $dir = "dist\XexTool-${{ matrix.platform }}"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Copy-Item "msvc\build\${{ matrix.platform }}\Release\XexTool.exe" $dir
+          Copy-Item README.md $dir -ErrorAction SilentlyContinue
+          Copy-Item LICENSE.md $dir -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path dist\zips | Out-Null
+          Compress-Archive -Path "$dir\*" -DestinationPath "dist\zips\XexTool-${{ matrix.platform }}.zip" -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: XexTool-${{ matrix.platform }}
+          path: dist/zips/*.zip
+          if-no-files-found: error
+
+  release:
+    name: GitHub Release
+    needs: [build-windows]
+    if: >
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '') ||
+      (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/zips
+          merge-multiple: true
+
+      - name: Determine release tag
+        id: meta
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            tag="${GITHUB_REF#refs/tags/}"
+            prerelease=false
+            moving=false
+          elif [[ -n "${{ github.event.inputs.release_tag }}" ]]; then
+            tag="${{ github.event.inputs.release_tag }}"
+            prerelease=false
+            moving=false
+          else
+            tag="latest"
+            prerelease=false
+            moving=true
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "moving=$moving" >> "$GITHUB_OUTPUT"
+          echo "Release tag: $tag (prerelease=$prerelease, moving=$moving)"
+
+      - name: Move the 'latest' tag/release to this build
+        if: steps.meta.outputs.moving == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Delete any prior "latest" release AND its git tag so the publish step
+          # recreates both pointing at this commit; the release action will not
+          # move an existing tag. Non-fatal on the first run.
+          gh release delete latest --repo "${{ github.repository }}" --cleanup-tag --yes || true
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: XexTool ${{ steps.meta.outputs.tag }}
+          prerelease: ${{ steps.meta.outputs.prerelease }}
+          make_latest: ${{ steps.meta.outputs.prerelease == 'false' }}
+          generate_release_notes: true
+          files: |
+            dist/zips/**/*
+
+      - name: Release summary
+        shell: bash
+        run: |
+          {
+            echo "### GitHub Release"
+            echo ""
+            echo "- Tag: \`${{ steps.meta.outputs.tag }}\`"
+            echo "- Windows x64: \`XexTool-x64.zip\`"
+            echo "- Windows x86: \`XexTool-Win32.zip\`"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- XeCrypt built with this solution's toolset. The submodule ships projects
+     pinned to v120/v140/v142/v145, none of which is reliably present. -->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{2EA051D2-ABDF-5D45-9577-EBF505912309}</ProjectGuid>
+    <RootNamespace>xecrypt</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <OutDir>$(SolutionDir)build\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)build\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>XeCrypt</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\third_party\XeCrypt;..\third_party\XeCrypt\aes;..\third_party\XeCrypt\md5;..\third_party\XeCrypt\rc4;..\third_party\XeCrypt\sha;..\third_party\XeCrypt\bign;..\third_party\XeCrypt\des;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <SDLCheck>false</SDLCheck>
+      <ConformanceMode>false</ConformanceMode>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <AdditionalIncludeDirectories>..\third_party\XeCrypt;..\third_party\XeCrypt\aes;..\third_party\XeCrypt\md5;..\third_party\XeCrypt\rc4;..\third_party\XeCrypt\sha;..\third_party\XeCrypt\bign;..\third_party\XeCrypt\des;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <SDLCheck>false</SDLCheck>
+      <ConformanceMode>false</ConformanceMode>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\third_party\XeCrypt;..\third_party\XeCrypt\aes;..\third_party\XeCrypt\md5;..\third_party\XeCrypt\rc4;..\third_party\XeCrypt\sha;..\third_party\XeCrypt\bign;..\third_party\XeCrypt\des;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <SDLCheck>false</SDLCheck>
+      <ConformanceMode>false</ConformanceMode>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <AdditionalIncludeDirectories>..\third_party\XeCrypt;..\third_party\XeCrypt\aes;..\third_party\XeCrypt\md5;..\third_party\XeCrypt\rc4;..\third_party\XeCrypt\sha;..\third_party\XeCrypt\bign;..\third_party\XeCrypt\des;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <SDLCheck>false</SDLCheck>
+      <ConformanceMode>false</ConformanceMode>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\third_party\XeCrypt\xecrypt.c" />
+    <ClCompile Include="..\third_party\XeCrypt\xecryptBn.c" />
+    <ClCompile Include="..\third_party\XeCrypt\xecryptHmacSha.c" />
+    <ClCompile Include="..\third_party\XeCrypt\aes\aes_modes.c" />
+    <ClCompile Include="..\third_party\XeCrypt\aes\aescrypt.c" />
+    <ClCompile Include="..\third_party\XeCrypt\aes\aeskey.c" />
+    <ClCompile Include="..\third_party\XeCrypt\aes\aestab.c" />
+    <ClCompile Include="..\third_party\XeCrypt\aes\ctr_inc.c" />
+    <ClCompile Include="..\third_party\XeCrypt\md5\md5.c" />
+    <ClCompile Include="..\third_party\XeCrypt\rc4\rc4_enc.c" />
+    <ClCompile Include="..\third_party\XeCrypt\rc4\rc4_skey.c" />
+    <ClCompile Include="..\third_party\XeCrypt\sha\sha1dgst.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\base64.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\bigdUtils.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\common.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\hash.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpAND.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpAdd.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpBitLength.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpCompare.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpComplement.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpDivide.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpEqual.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpGcd.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpHalfDiv.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpHalfMod.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpIsOne.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpIsPrime.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpIsZero.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpJacobi.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpLegendre.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpModAdd.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpModExp.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpModInv.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpModMult.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpModSquare.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpModSquareRoot.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpModSubtract.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpModulo.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpMultiply.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpOR.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpSetDigit.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpSetEqual.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpSetZero.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpShiftLeft.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpShiftRight.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpShortAdd.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpShortCmp.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpShortDiv.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpShortMod.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpShortModMult.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpShortMult.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpShortSub.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpSizeof.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpSolinasPrime.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpSquare.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpSubtract.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpSwap.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\mpXOR.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\pkcs1-rsa.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\spDivide.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\spGcd.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\spIsPrime.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\spModExp.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\spModInv.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\spModMult.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\spMultiply.c" />
+    <ClCompile Include="..\third_party\XeCrypt\bign\spPseudoRand.c" />
+    <ClCompile Include="..\third_party\XeCrypt\des\des.c" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

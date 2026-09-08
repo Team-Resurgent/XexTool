@@ -65,8 +65,6 @@
       <ConformanceMode>false</ConformanceMode>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>..\third_party\XeCrypt\$(Platform)\$(Configuration)\;..\third_party\XeCrypt\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>XeCrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
@@ -81,8 +79,6 @@
       <ConformanceMode>false</ConformanceMode>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>..\third_party\XeCrypt\$(Platform)\$(Configuration)\;..\third_party\XeCrypt\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>XeCrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
@@ -97,8 +93,6 @@
       <ConformanceMode>false</ConformanceMode>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>..\third_party\XeCrypt\$(Platform)\$(Configuration)\;..\third_party\XeCrypt\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>XeCrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
@@ -113,8 +107,6 @@
       <ConformanceMode>false</ConformanceMode>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>..\third_party\XeCrypt\$(Platform)\$(Configuration)\;..\third_party\XeCrypt\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>XeCrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
@@ -144,6 +136,9 @@
   <ItemGroup>
     <ProjectReference Include="mspack.vcxproj">
       <Project>{6BEF2089-3825-5C2C-AA92-B54C158CB9C0}</Project>
+    </ProjectReference>
+    <ProjectReference Include="xecrypt.vcxproj">
+      <Project>{2EA051D2-ABDF-5D45-9577-EBF505912309}</Project>
     </ProjectReference>
     <ProjectReference Include="ldic.vcxproj">
       <Project>{4AF93652-2202-5F7B-BE9A-1C2AF3C51793}</Project>
