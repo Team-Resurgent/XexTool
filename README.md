@@ -93,6 +93,56 @@ different valid choices -- so the checks are behavioural:
 3. **Real data**: run both over actual XEX basefiles and compare
    decompressed output, not compressed size.
 
+## Building
+
+`msvc/XexTool.sln`, Visual Studio 2022 format (2026 opens it), Debug/Release for
+Win32 and x64. Four projects:
+
+| project | what |
+|---|---|
+| `XexTool` | the tool, with tinyxml2 compiled in as a single translation unit |
+| `mspack` | libmspack's LZX decoder |
+| `ldic` | **temporary** -- the LZX compressor, until libmspack has one |
+| `XeCrypt` | referenced from the submodule's own `XeCrypt.2019.vcxproj` |
+
+`ldic` is deliberately its own project rather than folded into `XexTool`, so
+removing it later is deleting one project, one solution entry and one reference.
+
+### It does not link yet
+
+XeCrypt builds. XexTool does not, because the team-Resurgent XeCrypt has a
+different API surface from the copy the original vendored:
+
+| needed by XexTool | in the submodule |
+|---|---|
+| `XeCryptShaInit` / `Update` / `Final` | present |
+| `XeCryptSha`, `XeCryptRotSumSha`, `XeCryptAes*`, `XeCryptBnQwBeSig*` | present |
+| `XeCryptHmacShaInit` / `Update` / `Final` | **absent** -- only the one-shot `XeCryptHmacSha`, which takes at most three input buffers |
+| `XeCryptBnQwNeModExp` | **absent** -- there is `XeCryptBnQwNeModExpRoot`, but that is the CRT form and takes different parameters |
+| `XeShaContext`, `XeHmacShaContext` | named `XECRYPT_SHA_STATE` |
+
+There is also a type collision: `src/types.h` has `typedef signed char s8`
+while `xecryptTypes.h` has `typedef char s8`.
+
+All four missing functions exist, implemented, in the original vendored copy
+(`xex_stuff/XeCrypt/src/XeCrypt.h`), with the signature
+
+```c
+bool XeCryptBnQwNeModExp(u64* out, const u64* in, const u64* exp,
+                         const u64* mod, s32 size);
+```
+
+so the clean fix is to contribute them to the fork, the same way the LZX
+compressor is to be added to the libmspack fork. The alternative -- mapping
+`XeCryptBnQwNeModExp` onto `XeCryptBnQwNeModExpRoot` locally -- is not
+attempted here: they are different operations, and a wrong mapping would
+produce silently invalid signatures rather than an error.
+
+The streaming HMAC is the easier of the two: it is a single
+Init / Update x7 / Final block in `SpecialPatches.cpp`, and HMAC over a
+concatenation is by definition the same value, so it could also be expressed
+with the existing one-shot call over a joined buffer.
+
 ## Still to do
 
 ### Move the decoder onto libmspack
