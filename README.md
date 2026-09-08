@@ -122,8 +122,10 @@ framing: the payloads they delimit form one continuous LZX stream whose window
 carries across them, so the stream is gathered and decompressed in a single
 pass. Decompressing per chunk would reset the window and produce garbage.
 
-The check that matters is the cross-check -- compress with ldic, decompress with
-libmspack:
+It is verified two ways, both differential -- a round trip through libmspack
+alone would pass even if the stream format had been misread.
+
+**Against ldic's compressor.** Compress with ldic, decompress with libmspack:
 
 ```
 $ XexTool -c c -o compressed.xex dash.xex     # ldic compressor
@@ -131,14 +133,27 @@ $ XexTool -b out.bin compressed.xex           # libmspack decompressor
 16941056 bytes, sha256 06A8446849184331DC1B513A894C08AD3F160DCEC8473F70CDCAE9F54B7C86F9
 ```
 
-identical to the basefile dumped straight from the uncompressed original. A
-round trip through libmspack alone would not have caught a stream-format
-misreading; this does.
+identical to the basefile dumped straight from the uncompressed original.
+
+**Against ldic's decompressor, over real retail XEXs.** Building the previous
+commit as a reference binary and dumping the basefile of every XEX in the
+September 2013 XDK recovery with both:
+
+```
+identical : 35
+different : 0
+skipped   : 0
+```
+
+30 of those 35 are compressed, so the decoder is genuinely exercised --
+`AvatarEditor.xex` at 16 MB, `dash.xex`, `xam.xex`, `xshell.xex` and the rest
+of the dashboard.
 
 The two delta paths are not converted. libmspack has `lzxd_set_reference_data`,
-which is the equivalent of `LdicSetWindowData`, but converting them without an
-XEXP patch file to verify against would be changing code that cannot be
-tested.
+which is the equivalent of `LdicSetWindowData`, but nothing in that XDK recovery
+is delta-compressed and it contains no `.xexp` patches, so a conversion could
+not be checked. Converting delta-patch code that cannot be tested is how silent
+corruption gets shipped.
 
 libmspack covers the first row completely, including `lzxd_set_reference_data`,
 the equivalent of `LdicSetWindowData` that XEXP delta patching depends on. It
