@@ -10,7 +10,7 @@
 #include <direct.h>
 #include "XexTool.h"
 #include "XGetopt.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 #include <iostream>
 #include <fstream>
@@ -1051,15 +1051,15 @@ int main(int argc, char* argv[])
 	if( do_info_set )
 	{
 		// read in xml file
-		TiXmlDocument xml_doc;
-		if( !xml_doc.LoadFile(info_path) )
+		tinyxml2::XMLDocument xml_doc;
+		if( xml_doc.LoadFile(info_path) != tinyxml2::XML_SUCCESS )
 		{
 			printf("Error reading and parsing info file: %s\n", info_path);
 			return 1;
 		}
 		
 		// parse xml file
-		TiXmlElement* p_root = xml_doc.RootElement();
+		tinyxml2::XMLElement* p_root = xml_doc.RootElement();
 		if( p_root == NULL || p_root->Value() == NULL )
 		{
 			printf("Info file is invalid or corrupted\n");
@@ -1083,7 +1083,7 @@ int main(int argc, char* argv[])
 		xex.clearGameRatings();
 
 		// scan through and parse each entry
-		for(TiXmlElement* p_elem=p_root->FirstChildElement(); p_elem; p_elem=p_elem->NextSiblingElement())
+		for(tinyxml2::XMLElement* p_elem=p_root->FirstChildElement(); p_elem; p_elem=p_elem->NextSiblingElement())
 		{
 			if(		 _stricmp(p_elem->Value(), "moduleflags") == 0 )
 			{

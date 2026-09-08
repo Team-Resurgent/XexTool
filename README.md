@@ -9,9 +9,20 @@ vendored dependencies replaced by submodules and its dead weight removed.
 |---|---|---|
 | XexTool sources | `xex_stuff/XexTool/src` + `distro/common` | `src/` |
 | XeCrypt | vendored copy (14 files) | submodule, `third_party/XeCrypt` |
-| tinyxml | vendored, built as a separate lib | vendored, `third_party/tinyxml` |
+| tinyxml | vendored, built as a separate lib | tinyxml2, submodule, `third_party/tinyxml2` |
 | mbedtls | vendored (449 files) | **removed** |
 | ldic | vendored LZX codec (47 files) | **kept** -- see below |
+
+### tinyxml to tinyxml2
+
+tinyxml1 is unmaintained, so this moves to tinyxml2 as a submodule. The two are
+not API-compatible in general, but XexTool's usage was narrow enough that it did
+not matter: three declarations in `main.cpp`, reading the `-i` info file.
+
+`LoadFile`, `RootElement`, `Value`, `FirstChildElement`, `NextSiblingElement`
+and `Attribute` all exist in tinyxml2 under the same names -- `Value()` is
+inherited from `XMLNode` -- so the port was the type names, the namespace, and
+`LoadFile` returning `XMLError` rather than `bool`.
 
 ### mbedtls was unused
 
