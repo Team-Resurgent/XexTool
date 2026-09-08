@@ -33,21 +33,22 @@ would be wrapped in a container we do not want. This is also why libmspack's
 decoder works here at all: `libXexUnpack` drives `lzxd_init` and
 `lzxd_decompress` directly, with no CAB layer.
 
-## ldic cannot simply be replaced
+## The LZX plan
 
 `ldic` is a 47-file LZX codec with both an encoder and a decoder, and XexTool
-uses **both**:
+uses both:
 
 | direction | ldic calls | call sites |
 |---|---|---|
 | decompress | `LdicCreateDecompression`, `LdicSetWindowData`, `LdicDecompress`, `LdicResetDecompression`, `LdicDestroyDecompression` | `XexPacker::unpackCompressed`, `unpackDeltaCompressed`, `XexPatcher::XexpDeltaDecompress` |
 | compress | `LdicCreateCompression`, `LdicCompress`, `LdicFlushCompressorOutput`, `LdicDestroyCompression` | `XexPacker::packCompressed` |
 
-libmspack (`third_party/libmspack`, submodule of kyz/libmspack) covers the
-first row completely, including `lzxd_set_reference_data` -- the equivalent of
-`LdicSetWindowData` that XEXP delta patching depends on.
+`third_party/libmspack` is Team-Resurgent's fork, currently identical to
+upstream at `55d5019`. Its decoder covers the first row completely, including
+`lzxd_set_reference_data` -- the equivalent of `LdicSetWindowData` that XEXP
+delta patching depends on.
 
-It cannot cover the second row. `lzxc.c` upstream is a stub:
+Its encoder does not exist. `lzxc.c` upstream is eighteen lines:
 
 ```c
 /* LZX compression implementation */
@@ -57,28 +58,38 @@ It cannot cover the second row. `lzxc.c` upstream is a stub:
 /* todo */
 ```
 
-Eighteen lines, and `qtmc.c` and `mszipc.c` are the same. libmspack decompresses
-the Microsoft formats; it was never given compressors.
+`qtmc.c` and `mszipc.c` are the same, and `mspack_create_cab_compressor()`
+returns `NULL`. libmspack declares the compressor API and never implemented it.
 
-So the shape of the answer is fixed: **libmspack can replace ldic's decoder, and
-nothing can currently replace its encoder.** Two workable options:
+**So the plan is to implement LZX compression in the fork.** That keeps one
+cross-platform codec for both directions and removes the dependency on ldic,
+which is Windows-oriented legacy code.
 
-1. **Keep ldic** for both halves. The swap buys nothing.
-2. **Hybrid**: libmspack for decompression, ldic's encoder for compression.
-   Sheds most of ldic's 47 files, keeps a maintained decoder, and leaves the
-   encoder as the only piece of legacy code.
+### Verifying a new compressor
 
-`src/lzx/XexUnpack.*` is the in-memory wrapper from libXexUnpack, which adapts
-mspack's file callbacks to plain buffers and exposes
-`LZXUnpack(in, inSize, out, outSize, windowSize, &error)`. It is kept for option
-2 but nothing uses it yet.
+`ldic` stays in the tree initially as a reference implementation to check
+against. Output need not be byte-identical -- two LZX encoders may make
+different valid choices -- so the checks are behavioural:
+
+1. **Round trip**: our compressor then our decompressor returns the input.
+2. **Cross-check both ways**: our compressor into ldic's decompressor, and
+   ldic's compressor into our decompressor. This is the one that catches
+   stream-format mistakes a self-consistent round trip would hide.
+3. **Real data**: run both over actual XEX basefiles and compare
+   decompressed output, not compressed size.
 
 ## Still to do
 
-### Decide the ldic question
+### Move the decoder onto libmspack
 
-Nothing is rewired yet; `XexPacker.cpp` and `XexPatcher.cpp` still include
-`Ldic.h`, and `ldic` itself has not been copied into this tree.
+`XexPacker.cpp` and `XexPatcher.cpp` still include `Ldic.h`, and `ldic` has not
+been copied into this tree yet. The decode side can move first, since libmspack
+already covers it.
+
+### Implement LZX compression in the fork
+
+The remaining dependency on ldic, and the piece RXDK-360 needs in order to turn
+a linked image into a XEX.
 
 ### Build files
 

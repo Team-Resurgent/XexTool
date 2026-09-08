@@ -3,4 +3,4 @@
 	url = https://github.com/team-Resurgent/XeCrypt.git
 [submodule "third_party/libmspack"]
 	path = third_party/libmspack
-	url = https://github.com/kyz/libmspack.git
+	url = https://github.com/Team-Resurgent/libmspack.git
