@@ -6,7 +6,7 @@
 
 #include "XexIdcCreator.h"
 #include "Xex.h"
-#include "Endian.h"
+#include "XexEndian.h"
 #include "PEParser.h"
 
 XexIdcCreator::XexIdcCreator()

@@ -26,6 +26,16 @@ extern "C" {
   #define _BE_SYSTEM_
 #elif defined WIN32 || _WIN32 || WIN64 || _WIN64
   #define _LE_SYSTEM_
+#elif defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__)
+  #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    #define _BE_SYSTEM_
+  #else
+    #define _LE_SYSTEM_
+  #endif
+#elif defined(__BIG_ENDIAN__)
+  #define _BE_SYSTEM_
+#elif defined(__LITTLE_ENDIAN__) || defined(__x86_64__) || defined(__i386__) ||       defined(__aarch64__) || defined(__arm__)
+  #define _LE_SYSTEM_
 #endif // WIN32
 
 #ifdef _BE_SYSTEM_

@@ -4,7 +4,7 @@
 
 #include "XexReader.h"
 #include "Xex.h"
-#include "Endian.h"
+#include "XexEndian.h"
 #include "XexPacker.h"
 #include "XexData.h"
 #include "XexHeader.h"

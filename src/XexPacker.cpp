@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <vector>
 #include "DataBlock.h"
-#include "Endian.h"
+#include "XexEndian.h"
 #include "XexImageEntryTypes.h"
 #include "XexLzx.h"
 #include "lzx/lzx.h"

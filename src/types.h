@@ -79,6 +79,10 @@ typedef int                 BOOL;
 // 64bit fileio to work properly in linux etc
 #include <stdio.h>
 
+// MSVC's headers pull these in transitively; gcc and clang do not
+#include <string.h>
+#include <stdlib.h>
+
 
 #endif // _COMMON_TYPES_
 

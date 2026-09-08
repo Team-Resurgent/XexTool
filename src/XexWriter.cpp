@@ -4,7 +4,7 @@
 
 #include "XexWriter.h"
 #include "Xex.h"
-#include "Endian.h"
+#include "XexEndian.h"
 #include "XexPacker.h"
 #include "XexData.h"
 #include "XexHeader.h"
@@ -42,15 +42,15 @@ bool XexWriter::write(const Xex& xex, FILE* fd)
 	void* data = NULL;
 	int size = 0;
 	if( fseek(fd, 0, SEEK_SET) != 0 ) { return false; }
-	if( !write(xex, (void*)data, size) )
+	// the cast here produced an rvalue, which cannot bind to the void*&
+	// parameter; pass the variable itself
+	if( !write(xex, data, size) )
 		return false;
-	if( fwrite(data, 1, size, fd) != size )
-	{
-		delete[] data;
-		return false;
-	}
-	delete[] data;
-	return true;
+	bool ok = ((int)fwrite(data, 1, size, fd) == size);
+	// the buffer is allocated as bytes, so delete it as bytes rather than
+	// through a void*, which is undefined
+	delete[] (u8*)data;
+	return ok;
 }
 
 // if successful, 'data' needs to be freed

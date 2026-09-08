@@ -6,7 +6,7 @@
 #include "Xex.h"
 #include "XeCryptCompat.h"
 #include "XexData.h"
-#include "Endian.h"
+#include "XexEndian.h"
 #include "XexHeader.h"
 #include <assert.h>
 #include "XexLzx.h"
