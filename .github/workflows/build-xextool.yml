@@ -1,0 +1,160 @@
+name: Build XexTool
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Create a GitHub Release with this tag (e.g. v7.0.0). Leave empty to build only.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            runner: windows-latest
+          - name: windows-arm64
+            runner: windows-11-arm
+          - name: linux-x64
+            runner: ubuntu-latest
+          - name: linux-arm64
+            runner: ubuntu-24.04-arm
+          - name: macos-x64
+            runner: macos-13
+          - name: macos-arm64
+            runner: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Locate the binary
+        id: bin
+        shell: bash
+        run: |
+          # multi-config generators put it under a configuration directory
+          for candidate in build/XexTool build/XexTool.exe \
+                           build/Release/XexTool.exe build/Release/XexTool; do
+            if [ -f "$candidate" ]; then
+              echo "path=$candidate" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "no binary produced" >&2
+          find build -maxdepth 2 -type f -name 'XexTool*' >&2 || true
+          exit 1
+
+      - name: Verify it runs
+        shell: bash
+        run: |
+          # XexTool exits non-zero when given no arguments, so check the banner
+          banner=$("${{ steps.bin.outputs.path }}" 2>&1 | head -n 1 || true)
+          echo "$banner"
+          case "$banner" in
+            *"XexTool v"*) ;;
+            *) echo "unexpected banner" >&2; exit 1 ;;
+          esac
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p "dist/XexTool-${{ matrix.name }}"
+          cp "${{ steps.bin.outputs.path }}" "dist/XexTool-${{ matrix.name }}/"
+          cp README.md "dist/XexTool-${{ matrix.name }}/" 2>/dev/null || true
+          cp LICENSE.md "dist/XexTool-${{ matrix.name }}/" 2>/dev/null || true
+          mkdir -p dist/zips
+          cd dist
+          if command -v zip >/dev/null 2>&1; then
+            zip -r "zips/XexTool-${{ matrix.name }}.zip" "XexTool-${{ matrix.name }}"
+          else
+            7z a "zips/XexTool-${{ matrix.name }}.zip" "XexTool-${{ matrix.name }}"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: XexTool-${{ matrix.name }}
+          path: dist/zips/*.zip
+          if-no-files-found: error
+
+  release:
+    name: GitHub Release
+    needs: [build]
+    if: >
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '') ||
+      (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/zips
+          merge-multiple: true
+
+      - name: Determine release tag
+        id: meta
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            tag="${GITHUB_REF#refs/tags/}"; prerelease=false; moving=false
+          elif [[ -n "${{ github.event.inputs.release_tag }}" ]]; then
+            tag="${{ github.event.inputs.release_tag }}"; prerelease=false; moving=false
+          else
+            tag="latest"; prerelease=false; moving=true
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "moving=$moving" >> "$GITHUB_OUTPUT"
+          echo "Release tag: $tag (prerelease=$prerelease, moving=$moving)"
+
+      - name: Move the 'latest' tag/release to this build
+        if: steps.meta.outputs.moving == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Delete any prior "latest" release and its tag so the publish step
+          # recreates both at this commit; the release action will not move an
+          # existing tag. Non-fatal on the first run.
+          gh release delete latest --repo "${{ github.repository }}" --cleanup-tag --yes || true
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: XexTool ${{ steps.meta.outputs.tag }}
+          prerelease: ${{ steps.meta.outputs.prerelease }}
+          make_latest: ${{ steps.meta.outputs.prerelease == 'false' }}
+          generate_release_notes: true
+          files: |
+            dist/zips/**/*
