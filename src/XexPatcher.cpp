@@ -9,7 +9,8 @@
 #include "Endian.h"
 #include "XexHeader.h"
 #include <assert.h>
-#include "XexUnpack.h"
+#include "XexLzx.h"
+#include <vector>
 
 typedef struct {
 	u32 deltaSrc;	// offset to start unpacking data from
@@ -267,16 +268,18 @@ bool XexPatcher::XexpDeltaDecompress(s32 windowSize, DataBlock& output,
 			// seeded with the region it patches. Try with the per-stream header
 			// and, failing that, without it; producers differ on whether one is
 			// emitted per block or only once.
-			u32 lzxError = 0;
-			LZXUnpackDelta((u8*)inputBuff, comp_size, data, decomp_size,
-			               (u32)windowSize, data, decomp_size, 0, lzxError);
-			if( lzxError != 0 )
-			{
-				output.get(data, delta_src, decomp_size);
-				LZXUnpackDelta((u8*)inputBuff, comp_size, data, decomp_size,
-				               (u32)windowSize, data, decomp_size, 1, lzxError);
-			}
-			if( inputSize < comp_size || lzxError != 0 )
+			// The window is seeded with the region being patched, so the
+			// reference must be kept separately from the output buffer.
+			// The window is seeded with the region being patched, so keep the
+			// reference separate from the buffer being written.
+			std::vector<u8> reference(data, data + decomp_size);
+			XexLzxDecoder* decoder = XexLzxCreate((u32)windowSize);
+			bool decoded = decoder != NULL &&
+			               XexLzxSeedWindow(decoder, reference.data(), decomp_size) &&
+			               XexLzxDecodeChunk(decoder, inputBuff, comp_size,
+			                                 data, decomp_size);
+			XexLzxDestroy(decoder);
+			if( inputSize < comp_size || !decoded )
 			{
 				delete[] data;
 				return false;

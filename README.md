@@ -35,34 +35,42 @@ Open `msvc/XexTool.sln` in Visual Studio 2022 or later, or:
 msbuild msvc/XexTool.sln /p:Configuration=Release /p:Platform=x64
 ```
 
-Four projects: `XexTool`, `mspack` (libmspack's LZX decoder), `ldic`, and a
-reference to the XeCrypt submodule's own project. tinyxml2 is a single
-translation unit and is compiled directly into `XexTool`.
+Three projects: `XexTool`, `lzx` (libLZX) and `xecrypt`. tinyxml2 is a single
+translation unit and is compiled into `XexTool` directly.
 
 ## What changed
 
 | component | before | now |
 |---|---|---|
 | sources | `xex_stuff/XexTool/src` + `distro/common` | `src/` |
-| XeCrypt | vendored copy | submodule, `third_party/XeCrypt` |
+| XeCrypt | vendored copy | submodule |
 | tinyxml | vendored, unmaintained | tinyxml2, submodule |
-| mbedtls | vendored, 449 files | **removed** |
-| ldic | vendored LZX codec | still present; see below |
+| mbedtls | vendored, 449 files | **removed**, unused |
+| ldic | vendored LZX codec, 47 files | **removed**, replaced by libLZX |
+| libmspack | -- | briefly used for decoding, then replaced by libLZX |
+
+Compression and decompression now both go through
+[libLZX](https://github.com/Team-Resurgent/libLZX), which needed two additions:
+
+- `lzx_create_compression_window()` / `lzx_create_decompression_window()`, since
+  both sides were pinned to `LZX_WINDOW_SIZE` of 128KiB while a XEX records a
+  32KiB window, and a decoder must use the window the encoder did;
+- `lzx_set_window_data()`, which seeds the decoder's window the way ldic's
+  `LZX_DecodeInsertDictionary` did -- reference at the end, zeros before it --
+  which is what XEX delta patches need.
 
 ### mbedtls was unused
 
-Nothing included it and no project file referenced it -- the original linked
-`XeCrypt`, `ldic` and `tinyxml` only. It was roughly three quarters of the
-source tree.
+Nothing included it and no project file referenced it. It was roughly three
+quarters of the original source tree.
 
 ### tinyxml to tinyxml2
 
 The two are not API-compatible in general, but the usage here was three
-declarations in `main.cpp` reading the `-i` info file. `LoadFile`,
-`RootElement`, `Value`, `FirstChildElement`, `NextSiblingElement` and
-`Attribute` all exist in tinyxml2 under the same names, with `Value()`
-inherited from `XMLNode`, so the port was the type names, the namespace, and
-`LoadFile` returning `XMLError` rather than `bool`.
+declarations in `main.cpp`. `LoadFile`, `RootElement`, `Value`,
+`FirstChildElement`, `NextSiblingElement` and `Attribute` all exist in tinyxml2
+under the same names, so the port was the type names, the namespace, and
+`LoadFile` returning `XMLError`.
 
 ### Porting to this XeCrypt
 
@@ -73,94 +81,56 @@ The team-Resurgent XeCrypt's API differs from the copy that was vendored:
 | `XeShaContext` | `XECRYPT_SHA_STATE` |
 | `XeHmacShaContext` | `XECRYPT_HMAC_SHA_STATE` |
 | `XeAesContext` | `XECRYPT_AES_STATE` |
-| `XeRsaKey` | `XECRYPT_RSA` -- identical layout: `u32` count, `u32` exponent, `u64` reserved |
-| signature buffer as `u64*` | `PXECRYPT_SIG`, a 256-byte layout over the same buffer |
-| `XE_CRYPT_ENC` / `XE_CRYPT_DEC` | a `BOOL fEncrypt`; the original enum was `DEC = 0`, `ENC = 1`, so the mapping is direct |
-| `XeCryptBnQwNeModExp` | present, declared in `xecryptBn.h` rather than `xecrypt.h` |
-| `XeCryptHmacShaInit` / `Update` / `Final` | contributed to the XeCrypt fork -- only the three-buffer one-shot existed |
+| `XeRsaKey` | `XECRYPT_RSA` -- identical layout |
+| signature buffer as `u64*` | `PXECRYPT_SIG`, the same 256 bytes |
+| `XE_CRYPT_ENC` / `XE_CRYPT_DEC` | a `BOOL fEncrypt`; the enum was `DEC = 0`, `ENC = 1` |
+| `XeCryptHmacShaInit` / `Update` / `Final` | contributed to the XeCrypt fork |
 
-Two further wrinkles:
-
-- `src/types.h` defined `s8` as `signed char` and `xecryptTypes.h` as `char`.
-  Those are distinct types in C++ even where `char` is signed, so they
-  collided; `types.h` now matches.
-- This XeCrypt takes mutable input buffers where XexTool passes const ones.
-  `src/XeCryptCompat.h` supplies const-qualified overloads that forward, rather
-  than casting at each call site.
+`src/types.h` defined `s8` as `signed char` and `xecryptTypes.h` as `char`,
+which are distinct types in C++; `types.h` now matches. `src/XeCryptCompat.h`
+supplies const-qualified overloads where this XeCrypt takes mutable buffers.
 
 ### XGetopt
 
-The original compiled `$(COMMON_PATH)\XGetopt.c`, which is absent from the
-source this was taken from -- only the header survived. `src/XGetopt.c` is a
-fresh implementation of the same interface following POSIX getopt semantics.
+The original compiled `$(COMMON_PATH)\XGetopt.c`, absent from the source this
+was taken from. `src/XGetopt.c` is a fresh implementation of the same interface.
 
 ## XEX uses raw LZX, not CAB
 
-Worth stating because it governs which libraries are the right shape. There is
-no CAB anywhere: the compression callback receives raw LZX blocks and XexTool
+There is no CAB anywhere: the compressor emits raw LZX blocks and XexTool
 applies its own framing -- a big-endian 16-bit compressed length per block, then
 the stream split into 0x10000 hashed blocks with `XexHash` headers, over a
-0x8000 window.
+32KiB window. libLZX frames its own output as
+`{ uint16 compressed; uint16 uncompressed; }` little-endian, so the compressor
+output is reframed on the way out.
 
-So what is needed is a raw LZX codec, buffer in and buffer out. A CAB-level
-compressor would be the wrong shape even if one existed. It is also why
-libmspack's decoder suits: `src/lzx/XexUnpack.*` drives `lzxd_init` and
-`lzxd_decompress` directly, with no CAB layer.
+## Verification
 
-## The remaining ldic dependency
+Against a reference binary built from the last commit that still used ldic:
 
-`ldic` is now used for one thing only: `XexPacker::packCompressed`. libmspack
-has no compressor -- every `*c.c` in it is an eighteen-line `/* todo */` stub,
-LZX, MSZIP, Quantum and CAB alike, and `mspack_create_cab_compressor()` returns
-`NULL`.
+```
+basefile dump, all 35 XEXs in the September 2013 XDK recovery : 35 identical
+GTA IV title update applied to its base xex                   : identical
+compress with libLZX, decompress, compare to the original     : identical
+```
 
-[Team-Resurgent/libLZX](https://github.com/Team-Resurgent/libLZX) does have one:
-a 2052-line encoder alongside a decoder, with an API that maps onto ldic's
-directly.
-
-| ldic | libLZX |
-|---|---|
-| `LdicCreateCompression` | `lzx_create_compression` |
-| `LdicCompress` | `lzx_compress_block` |
-| `LdicFlushCompressorOutput` | `lzx_flush_compression` |
-| `LdicDestroyCompression` | `lzx_destroy_compression` |
-
-Its output is standard LZX. Compressing `xshell.xex` with libLZX and decoding
-with libmspack returns the input byte for byte, both for the whole stream and
-for a single block in isolation.
-
-Three things integration has to reconcile:
-
-- **Window size.** libLZX uses `LZX_WINDOW_SIZE` of 128KiB; XEX and ldic use
-  32KiB, which is what a XEX's unpack info records. Decoding with the wrong
-  window fails outright, which is what made the first cross-check look like a
-  format mismatch.
-- **Framing.** libLZX prefixes each block with
-  `{ uint16 compressed_size; uint16 uncompressed_size; }` little-endian, while
-  XexTool writes a single big-endian 16-bit compressed length. Both are
-  per-block with sizes, so this is a re-framing rather than a format change.
-- **Output model.** ldic delivers blocks through a callback; libLZX writes into
-  a caller-supplied buffer.
-
-`libLZX` also has a decoder, so it could replace libmspack too, but its decoder
-has no window-seeding entry point, which the delta paths need. Its context does
-expose `mem_window` and `window_size`, so adding one mirroring ldic's
-`LZX_DecodeInsertDictionary` would be straightforward.
+30 of those 35 are compressed and the update is delta-compressed, so the plain
+and delta decode paths and the compressor are all exercised. `dash.xex`
+compresses to 6418432 bytes against ldic's 6416384.
 
 ## Layout
 
 ```
 src/                    XexTool sources
 tools/                  helper scripts
-src/lzx/                buffer shims over libmspack's lzxd
+src/lzx/                LZX decode wrapper over libLZX
 msvc/                   Visual Studio solution and projects
 third_party/XeCrypt     submodule: github.com/Team-Resurgent/XeCrypt
-third_party/libmspack   submodule: github.com/Team-Resurgent/libmspack
+third_party/libLZX      submodule: github.com/Team-Resurgent/libLZX
 third_party/tinyxml2    submodule: github.com/leethomason/tinyxml2
-third_party/ldic        LZX codec, to be replaced
 ```
 
 ## Credits
 
-XexTool is xorloser's work, 2006-2017. XeCrypt, libmspack, tinyxml2 and ldic
-carry their own licences; see their respective directories.
+XexTool is xorloser's work, 2006-2017. XeCrypt, libLZX and tinyxml2 carry their
+own licences; see their respective directories.
