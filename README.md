@@ -113,9 +113,9 @@ libmspack's decoder suits: `src/lzx/XexUnpack.*` drives `lzxd_init` and
 
 | direction | call sites | status |
 |---|---|---|
-| decompress | `XexPacker::unpackCompressed` | **on libmspack** |
-| decompress | `XexPacker::unpackDeltaCompressed`, `XexPatcher::XexpDeltaDecompress` | still ldic |
-| compress | `XexPacker::packCompressed` | still ldic; nothing to replace it |
+| decompress | `XexPacker::unpackCompressed` | **libmspack** |
+| decompress | `XexPatcher::XexpDeltaDecompress` | **libmspack** |
+| compress | `XexPacker::packCompressed` | ldic; nothing exists to replace it |
 
 `unpackCompressed` is converted and verified. XexTool's 16-bit sizes are its own
 framing: the payloads they delimit form one continuous LZX stream whose window
@@ -149,62 +149,43 @@ skipped   : 0
 `AvatarEditor.xex` at 16 MB, `dash.xex`, `xam.xex`, `xshell.xex` and the rest
 of the dashboard.
 
-The two delta paths are **not** converted, and the attempt is worth recording
-because the obvious mapping does not work.
+All three decode paths are on libmspack; only the compressor still uses ldic.
 
-`tools/stfs_extract.py` unpacks a title update to get a fixture: a GTA IV
-update yields a `default.xexp` that XexTool reports as `Delta Compressed`, and
-the base `default.xex` comes out of the disc image with `xdvdfs copy-out`.
-Patching with ldic gives a 12857344-byte result, sha256 `8268FDC9...`, so there
-is something to compare against.
+The delta paths took a fix in the libmspack fork. `lzxd_set_reference_data`
+refused any stream not created with `is_delta`, but that flag conflates two
+things: it selects the **LZX DELTA bitstream**, which carries a chunk_size field
+and extended match lengths, and it restricts the window to 2^17..2^25. XEX
+delta blocks are not LZX DELTA -- they are ordinary LZX decoded over a window
+seeded with the region being patched, in a 32KiB window DELTA does not permit.
+Since reference data's only effect on decoding is to widen one match-offset
+bounds check, the restriction was dropped.
 
-libmspack does have `lzxd_set_reference_data`, the counterpart of
-`LdicSetWindowData`. But it is gated behind the `is_delta` flag, and that flag
-is not a neutral switch:
+The second half was how much window to seed. ldic's `LZX_DecodeInsertDictionary`
+seeds the **whole** window:
 
-- it restricts the window to 2^17..2^25, while XEX delta blocks use 32KiB (2^15);
-- it selects the **LZX DELTA bitstream**, which carries a chunk_size field and
-  extended match lengths that plain LZX does not have.
+```c
+memcpy(ctx_ptr + ctx_size - dictSize, dictData, dictSize);
+if (dictSize < ctx_size)
+    memset(ctx_ptr, 0, ctx_size - dictSize);
+```
 
-So XEX delta blocks are not LZX DELTA. They are ordinary LZX streams decoded
-over a window pre-seeded with the region being patched -- two different things
-that libmspack conflates, since the only effect reference data has on decoding
-is to widen one match-offset bounds check.
+reference at the end, zeros before it. So the full 32KiB is addressable history
+and the encoder emits offsets into the zeroed region. Seeding only the reference
+bytes made libmspack reject those as `match offset beyond LZX stream`. Building
+the same full-window dictionary fixed it.
 
-Removing that gate lets the stream initialise, but decoding then fails with
-`match offset beyond LZX stream`. The likely cause is header framing: libmspack
-reads the one-time "intel filesize" header on each newly created stream, whereas
-ldic resets between blocks without re-reading one, so the leading bits are
-consumed as a header that is not there and every subsequent offset is wrong.
-Confirming that means reading ldic's reset path against libmspack's block
-header handling.
+### Verification
 
-Until that is resolved the delta paths stay on ldic, which works.
+Against a reference binary built from the last full-ldic commit:
 
-libmspack covers the first row completely, including `lzxd_set_reference_data`,
-the equivalent of `LdicSetWindowData` that XEXP delta patching depends on. It
-cannot cover the second: `lzxc.c` upstream is eighteen lines of licence header
-and `/* todo */`, as are `qtmc.c` and `mszipc.c`, and
-`mspack_create_cab_compressor()` returns `NULL`. libmspack declares the
-compressor API and never implemented it.
+```
+basefile dump, all 35 XEXs in the XDK recovery : identical
+GTA IV title update applied to its base xex    : identical
+                                                 sha256 8268FDC9...
+```
 
-The plan is to implement LZX compression in
-[Team-Resurgent/libmspack](https://github.com/Team-Resurgent/libmspack), giving
-one cross-platform codec for both directions and removing `ldic` entirely.
-`ldic` is deliberately a separate project rather than folded into `XexTool`, so
-removing it later is deleting one project, one solution entry and one reference.
-
-### Verifying a replacement compressor
-
-`ldic` stays meanwhile as a reference. Output need not be byte-identical -- two
-LZX encoders may make different valid choices -- so the checks are behavioural:
-
-1. **Round trip**: our compressor then our decompressor returns the input.
-2. **Cross-check both ways**: our compressor into ldic's decompressor, and
-   ldic's compressor into our decompressor. This is the one that catches
-   stream-format mistakes a self-consistent round trip would hide.
-3. **Real data**: both over actual XEX basefiles, comparing decompressed
-   output rather than compressed size.
+30 of those 35 are compressed and the update is delta-compressed, so both the
+plain and delta paths are genuinely exercised.
 
 ## Layout
 

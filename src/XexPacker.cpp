@@ -344,7 +344,6 @@ bool XexPacker::unpackDeltaCompressed(DataBlock& basefileOut, const DataBlock& b
 	
 	// unpack decrypted basefile
 	bool success = true;
-	LdicContext ctx = NULL;
 	u8* block_data = NULL;
 	u8* uncomp_data = new u8[imageSize];
 	
@@ -356,11 +355,6 @@ bool XexPacker::unpackDeltaCompressed(DataBlock& basefileOut, const DataBlock& b
 	unpackInfo.get(unpack_info.hash, 16, sizeof(XexHash));
 	
 	s32 max_uncomp_size = 0;
-	if( !LdicCreateDecompression(ctx, source_size, window_size, max_uncomp_size) )
-	{
-		success = false;
-		goto finish_up;
-	}
 	
 	// unpacks blocks at a time, each block has multiple smaller blocks to decompress too
 	s32 input_offset = 0;
@@ -399,7 +393,6 @@ bool XexPacker::unpackDeltaCompressed(DataBlock& basefileOut, const DataBlock& b
 finish_up:
 	if(block_data) delete[] block_data;
 	if(uncomp_data)delete[] uncomp_data;
-	if(ctx) LdicDestroyDecompression(ctx);
 	return success;
 }
 */

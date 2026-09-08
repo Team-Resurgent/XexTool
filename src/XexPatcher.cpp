@@ -10,6 +10,7 @@
 #include "XexHeader.h"
 #include <assert.h>
 #include "Ldic.h"
+#include "XexUnpack.h"
 
 typedef struct {
 	u32 deltaSrc;	// offset to start unpacking data from
@@ -208,7 +209,7 @@ fclose(fd);
 //			input data to decompress
 //			size of input data to decompress
 // returns:	true if successful
-bool XexPatcher::XexpDeltaDecompress(const LdicContext& ctx, DataBlock& output,
+bool XexPatcher::XexpDeltaDecompress(s32 windowSize, DataBlock& output,
 									 const u8* inputBuff, s32 inputSize)
 {
 	s32 outputSize = output.size();
@@ -263,11 +264,20 @@ bool XexPatcher::XexpDeltaDecompress(const LdicContext& ctx, DataBlock& output,
 			u8* data = new u8[decomp_size];
 			output.get(data, delta_src, decomp_size);
 			
-			// decompress
-			if(	inputSize < comp_size ||
-				!LdicSetWindowData(ctx, data, decomp_size) ||
-				!LdicDecompress(ctx, inputBuff, comp_size, data, decomp_size) ||
-				!LdicResetDecompression(ctx) )
+			// Each block is an independent LZX stream decoded over a window
+			// seeded with the region it patches. Try with the per-stream header
+			// and, failing that, without it; producers differ on whether one is
+			// emitted per block or only once.
+			u32 lzxError = 0;
+			LZXUnpackDelta((u8*)inputBuff, comp_size, data, decomp_size,
+			               (u32)windowSize, data, decomp_size, 0, lzxError);
+			if( lzxError != 0 )
+			{
+				output.get(data, delta_src, decomp_size);
+				LZXUnpackDelta((u8*)inputBuff, comp_size, data, decomp_size,
+				               (u32)windowSize, data, decomp_size, 1, lzxError);
+			}
+			if( inputSize < comp_size || lzxError != 0 )
 			{
 				delete[] data;
 				return false;
@@ -286,12 +296,9 @@ bool XexPatcher::XexpDeltaDecompress(const LdicContext& ctx, DataBlock& output,
 
 bool XexPatcher::unpackDeltaHeaders(DataBlock& headersTarget, const DataBlock& headersSource, const DataBlock& patchInfo)
 {
-	LdicContext ldic_ctx;
 	s32 window_size = 0x8000;
 	s32 source_size = 0x8000;
 	s32 max_uncomp_size = 0;
-	if( !LdicCreateDecompression(ldic_ctx, source_size, window_size, max_uncomp_size) )
-		return false;
 	
 	// create output headers buffer
 	DeltaPatchDescriptor* patch_desc = (DeltaPatchDescriptor*)new u8[patchInfo.size()];
@@ -308,10 +315,9 @@ bool XexPatcher::unpackDeltaHeaders(DataBlock& headersTarget, const DataBlock& h
 	
 	// unpack all delta-blocks within the given data buffers
 //printf("\n\npatching headers\n\n");
-	bool result = XexpDeltaDecompress(ldic_ctx, headersTarget,
+	bool result = XexpDeltaDecompress(window_size, headersTarget,
 		patch_desc->patchData, patch_desc->infoSize-offsetof(DeltaPatchDescriptor, patchData));
 	
-	LdicDestroyDecompression(ldic_ctx);
 	delete[] patch_desc;
 	return result;
 }
@@ -357,7 +363,6 @@ bool XexPatcher::unpackDeltaBasefile(DataBlock& basefileTarget, s32 targetImageS
 //int cnt=1;
 
 	bool success = true;
-	LdicContext ctx = NULL;
 	u8* block_data = NULL;
 //	u8* uncomp_data = NULL;
 	
@@ -379,11 +384,6 @@ bool XexPatcher::unpackDeltaBasefile(DataBlock& basefileTarget, s32 targetImageS
 	basefilePatchInfo.get(&unpack_info.hash, 16, sizeof(XexHash));
 	
 	s32 max_uncomp_size = 0;
-	if( !LdicCreateDecompression(ctx, source_size, window_size, max_uncomp_size) )
-	{
-		success = false;
-		goto finish_up;
-	}
 	
 //printf("\n\n\n\npatching basefile\n\n");
 	// unpacks blocks at a time, each block has multiple smaller blocks to decompress too
@@ -425,7 +425,7 @@ bool XexPatcher::unpackDeltaBasefile(DataBlock& basefileTarget, s32 targetImageS
 //		u8* uncomp_ptr = uncomp_data;
 //		s32 uncomp_size = max_uncomp_size;
 //printf("\n\npatching basefile %d\n\n", cnt);
-		if( !XexpDeltaDecompress(ctx, basefileTarget, comp_ptr, comp_size) )
+		if( !XexpDeltaDecompress(window_size, basefileTarget, comp_ptr, comp_size) )
 		{
 			printf("Error doing delta decompress.\n");
 			success = false;
@@ -466,6 +466,5 @@ finish_up:
 	//basefileTarget.truncate(targetImageSize);
 	if(block_data) delete[] block_data;
 //	if(uncomp_data)delete[] uncomp_data;
-	if(ctx) LdicDestroyDecompression(ctx);
 	return success;
 }

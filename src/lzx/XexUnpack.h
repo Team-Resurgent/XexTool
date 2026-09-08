@@ -19,3 +19,12 @@
 TR_EXPORT void LZXUnpack(uint8_t* inputData, uint32_t inputDataSize,
                          uint8_t* outputData, uint32_t outputDataSize,
                          uint32_t windowSize, uint32_t& error);
+
+// Decompress one LZX block over a window pre-seeded with reference data.
+// skipHeader suppresses the per-stream "intel filesize" header read, for
+// producers that emit it once rather than per block.
+TR_EXPORT void LZXUnpackDelta(uint8_t* inputData, uint32_t inputDataSize,
+                              uint8_t* outputData, uint32_t outputDataSize,
+                              uint32_t windowSize,
+                              uint8_t* referenceData, uint32_t referenceDataSize,
+                              int skipHeader, uint32_t& error);
