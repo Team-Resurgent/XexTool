@@ -29,21 +29,35 @@ uses **both**:
 | decompress | `LdicCreateDecompression`, `LdicSetWindowData`, `LdicDecompress`, `LdicResetDecompression`, `LdicDestroyDecompression` | `XexPacker::unpackCompressed`, `unpackDeltaCompressed`, `XexPatcher::XexpDeltaDecompress` |
 | compress | `LdicCreateCompression`, `LdicCompress`, `LdicFlushCompressorOutput`, `LdicDestroyCompression` | `XexPacker::packCompressed` |
 
-The libmspack subset in `third_party/mspack` is `lzxd.c` -- decompression only.
-It covers the first row completely, including `lzxd_set_reference_data`, which
-is the equivalent of `LdicSetWindowData` that XEXP delta patching depends on.
-It cannot cover the second row at all.
+libmspack (`third_party/libmspack`, submodule of kyz/libmspack) covers the
+first row completely, including `lzxd_set_reference_data` -- the equivalent of
+`LdicSetWindowData` that XEXP delta patching depends on.
 
-So swapping wholesale to libmspack would **remove** `packCompressed`, and with
-it the ability to create compressed XEXs. Three options:
+It cannot cover the second row. `lzxc.c` upstream is a stub:
 
-1. **Keep ldic.** It works and has both halves. The mspack swap buys nothing.
+```c
+/* LZX compression implementation */
+#include <system.h>
+#include <lzx.h>
+
+/* todo */
+```
+
+Eighteen lines, and `qtmc.c` and `mszipc.c` are the same. libmspack decompresses
+the Microsoft formats; it was never given compressors.
+
+So the shape of the answer is fixed: **libmspack can replace ldic's decoder, and
+nothing can currently replace its encoder.** Two workable options:
+
+1. **Keep ldic** for both halves. The swap buys nothing.
 2. **Hybrid**: libmspack for decompression, ldic's encoder for compression.
-   Sheds most of ldic's 47 files but keeps the encoder.
-3. **Find a library with both.** libmspack upstream has no LZX compressor.
+   Sheds most of ldic's 47 files, keeps a maintained decoder, and leaves the
+   encoder as the only piece of legacy code.
 
-`third_party/mspack` and `src/lzx/XexUnpack.*` are kept in the tree for option 2,
-but nothing uses them yet.
+`src/lzx/XexUnpack.*` is the in-memory wrapper from libXexUnpack, which adapts
+mspack's file callbacks to plain buffers and exposes
+`LZXUnpack(in, inSize, out, outSize, windowSize, &error)`. It is kept for option
+2 but nothing uses it yet.
 
 ## Still to do
 
@@ -62,6 +76,7 @@ reference the old layout and the removed dependencies.
 ```
 src/                    XexTool sources
 third_party/XeCrypt     submodule: github.com/team-Resurgent/XeCrypt
+third_party/libmspack   submodule: github.com/kyz/libmspack
 third_party/tinyxml     vendored
 ```
 
