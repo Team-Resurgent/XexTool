@@ -9,7 +9,7 @@
 #include "XeCryptCompat.h"
 #include "xecryptBn.h"
 #include "Xex.h"
-#include "Endian.h"
+#include "XexEndian.h"
 
 #define SET_FLAG(toggle, flags, flag)	(toggle) ? ((flags) |= (flag)) : ((flags) &= (~(flag)))
 #define IS_FLAG_SET(flags, flag)		(((flags) & (flag)) != 0)

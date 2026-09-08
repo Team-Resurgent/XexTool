@@ -7,7 +7,7 @@
 #include "SpecialPatchesXefu.h"
 #include "XeCryptCompat.h"
 #include "PEParser.h"
-#include "Endian.h"
+#include "XexEndian.h"
 #include <ctype.h>
 
 

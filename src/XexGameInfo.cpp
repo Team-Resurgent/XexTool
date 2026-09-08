@@ -118,7 +118,7 @@ bool XexGameInfo::SPAGetGameName(const DataBlock& spaData, char* gameName, int g
 				s32 str_size = spaData.get16be(str_offset+2);
 				if(str_code == 0x8000)
 				{
-					int name_size = __min(gameNameLen-1, str_size);
+					int name_size = ((gameNameLen-1) < (str_size) ? (gameNameLen-1) : (str_size));
 					spaData.get(gameName, str_offset+4, name_size);
 					gameName[name_size] = '\0';
 					break;
