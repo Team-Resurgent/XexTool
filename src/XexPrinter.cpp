@@ -473,7 +473,7 @@ void XexPrinter::printAll(const Xex& xex, FILE* stream) const
 			XexVersionInfo version;
 			char name[12];
 			xex.getLibraryVersion(lib_num, name, version);
-			_snprintf(str, sizeof(str), "%3d) %-14s v%d.%d.%d.%d", lib_num, name,
+			snprintf(str, sizeof(str), "%3d) %-14s v%d.%d.%d.%d", lib_num, name,
 				version.major, version.minor, version.build, version.qfe);
 			fprintf(stream, "  %-32s  (%s", str,
 				approved_strs[version.approvedlibrary]);
@@ -497,7 +497,7 @@ void XexPrinter::printAll(const Xex& xex, FILE* stream) const
 			u32 module_number;
 			u8  module_index;
 			xex.getImportLibrary(lib_num, name, version, min_version, addresses, module_number, module_index);
-			_snprintf(str, sizeof(str), "%3d) %-14s v%d.%d.%d.%d", lib_num, name,
+			snprintf(str, sizeof(str), "%3d) %-14s v%d.%d.%d.%d", lib_num, name,
 				version.major, version.minor, version.build, version.qfe);
 			fprintf(stream, "  %-32s  (min v%d.%d.%d.%d)\n", str,
 				min_version.major, min_version.minor, min_version.build, min_version.qfe);

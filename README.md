@@ -59,14 +59,15 @@ XexTool -r a -o unlocked.xex default.xex
 git clone --recurse-submodules https://github.com/Team-Resurgent/XexTool.git
 ```
 
-Open `msvc/XexTool.sln` in Visual Studio 2022 or later, or build from a command
-prompt:
+Windows, Linux and macOS, x64 and arm64:
 
 ```
-msbuild msvc/XexTool.sln /p:Configuration=Release /p:Platform=x64
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
 ```
 
-Binaries are written to `msvc/build/<platform>/<configuration>/`.
+On Windows you can instead open `msvc/XexTool.sln` in Visual Studio 2022 or
+later, which writes to `msvc/build/<platform>/<configuration>/`.
 
 ## Dependencies
 

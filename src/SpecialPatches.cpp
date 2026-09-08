@@ -151,7 +151,7 @@ bool DoUpdatePatchFix(Xex& xex, FILE* printStream)
 				// the ORing of 0x20 convert it to lowercase
 				// (which then remove the case specific compare)
 				if( (buff[i]|0x20) == 'u' &&
-					_strnicmp((char*)buff+i, "update:", strlen("update:")) == 0 )
+					STRNICMP((char*)buff+i, "update:", strlen("update:")) == 0 )
 				{
 					// need to patch "update:xyz" to "D:xyz"
 					int len = (int)strlen((char*)buff+i);
