@@ -65,6 +65,10 @@ returns `NULL`. libmspack declares the compressor API and never implemented it.
 cross-platform codec for both directions and removes the dependency on ldic,
 which is Windows-oriented legacy code.
 
+The fork has a working clone at `D:\Git\libmspack`. Compressor work happens
+there and is pushed to Team-Resurgent/libmspack; this repository then just moves
+its submodule pointer.
+
 ### Verifying a new compressor
 
 `ldic` stays in the tree initially as a reference implementation to check
