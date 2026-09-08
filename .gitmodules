@@ -7,3 +7,6 @@
 [submodule "third_party/tinyxml2"]
 	path = third_party/tinyxml2
 	url = https://github.com/leethomason/tinyxml2.git
+[submodule "third_party/libLZX"]
+	path = third_party/libLZX
+	url = https://github.com/Team-Resurgent/libLZX.git

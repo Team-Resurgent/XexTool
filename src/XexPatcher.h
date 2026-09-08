@@ -8,7 +8,6 @@
 #include "DataBlock.h"
 
 class Xex;
-typedef void* LdicContext;
 
 class XexPatcher {
 public:

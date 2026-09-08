@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- TEMPORARY. ldic supplies the LZX compressor until libmspack has one. To remove it: delete this project, its solution entry, and the XexTool reference. -->
+<!-- libLZX: the LZX encoder. -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -21,8 +21,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
-    <ProjectGuid>{4AF93652-2202-5F7B-BE9A-1C2AF3C51793}</ProjectGuid>
-    <RootNamespace>ldic</RootNamespace>
+    <ProjectGuid>{DB36AC53-4877-558F-A04F-E0E08DAAEBA5}</ProjectGuid>
+    <RootNamespace>lzx</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -59,7 +59,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\third_party\ldic;..\third_party\ldic\common;..\third_party\ldic\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\third_party\libLZX\lzx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
@@ -69,7 +69,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
-      <AdditionalIncludeDirectories>..\third_party\ldic;..\third_party\ldic\common;..\third_party\ldic\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\third_party\libLZX\lzx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
@@ -79,7 +79,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\third_party\ldic;..\third_party\ldic\common;..\third_party\ldic\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\third_party\libLZX\lzx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
@@ -89,39 +89,14 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
-      <AdditionalIncludeDirectories>..\third_party\ldic;..\third_party\ldic\common;..\third_party\ldic\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\third_party\libLZX\lzx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\third_party\ldic\decoder\decalign.c" />
-    <ClCompile Include="..\third_party\ldic\decoder\decapi.c" />
-    <ClCompile Include="..\third_party\ldic\decoder\decblk.c" />
-    <ClCompile Include="..\third_party\ldic\decoder\decin.c" />
-    <ClCompile Include="..\third_party\ldic\decoder\decinit.c" />
-    <ClCompile Include="..\third_party\ldic\decoder\decout.c" />
-    <ClCompile Include="..\third_party\ldic\decoder\dectree.c" />
-    <ClCompile Include="..\third_party\ldic\decoder\decuncmp.c" />
-    <ClCompile Include="..\third_party\ldic\decoder\decverb.c" />
-    <ClCompile Include="..\third_party\ldic\decoder\decxlat.c" />
-    <ClCompile Include="..\third_party\ldic\decoder\ldi.c" />
-    <ClCompile Include="..\third_party\ldic\decoder\maketbl.c" />
-    <ClCompile Include="..\third_party\ldic\encoder\blkinit.c" />
-    <ClCompile Include="..\third_party\ldic\encoder\block.c" />
-    <ClCompile Include="..\third_party\ldic\encoder\bsearch.c" />
-    <ClCompile Include="..\third_party\ldic\encoder\encapi.c" />
-    <ClCompile Include="..\third_party\ldic\encoder\encdata.c" />
-    <ClCompile Include="..\third_party\ldic\encoder\encstats.c" />
-    <ClCompile Include="..\third_party\ldic\encoder\enctree.c" />
-    <ClCompile Include="..\third_party\ldic\encoder\init.c" />
-    <ClCompile Include="..\third_party\ldic\encoder\io.c" />
-    <ClCompile Include="..\third_party\ldic\encoder\lci.c" />
-    <ClCompile Include="..\third_party\ldic\encoder\offsets.c" />
-    <ClCompile Include="..\third_party\ldic\encoder\optenc.c" />
-    <ClCompile Include="..\third_party\ldic\encoder\tree.c" />
-    <ClCompile Include="..\third_party\ldic\ldic.cpp" />
+    <ClCompile Include="..\third_party\libLZX\lzx\lzx_encoder.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

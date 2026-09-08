@@ -10,8 +10,8 @@
 #include "DataBlock.h"
 #include "Endian.h"
 #include "XexImageEntryTypes.h"
-#include "Ldic.h"
 #include "XexUnpack.h"
+#include "lzx/lzx.h"
 
 /*
 // decrypt basefile in place
@@ -559,37 +559,55 @@ bool XexPacker::packCompressed(DataBlock& basefileOut, const DataBlock& basefile
 				bool isEncrypted, const XexKey& encKey,
 				DataBlock& unpackInfo, s32 imageSize)
 {
-	LdicContext ctx;
 	s32 window_size = 0x8000;
-	int uncomp_size = 0x8000;
-	int max_comp_size = 0;
-	LdicCompressionCallback callback_ptr = (&XexPacker::s_compressionCallback);
-	if( !LdicCreateCompression(ctx, uncomp_size, window_size, max_comp_size, callback_ptr, this) )
+	s32 uncomp_size = 0x8000;
+
+	// Compress the whole image, then reframe. libLZX prefixes each block with
+	// { uint16 compressed; uint16 uncompressed; } little-endian, while a XEX
+	// carries a single big-endian compressed length per block, which is what
+	// the hashed-block splitting below expects.
+	std::vector<u8> source((size_t)imageSize);
+	basefileIn.get(source.data(), 0, imageSize);
+
+	std::vector<u8> encoded((size_t)imageSize + (imageSize >> 2) + 0x10000);
+	ENCODER_CONTEXT* enc = lzx_create_compression_window(encoded.data(), (u32)window_size);
+	if( enc == NULL )
 		return false;
-	
-	s32 uncomp_offset = 0;
-	u8* uncomp_data = new u8[uncomp_size];
-	DataBlock comp_data;
-	m_callbackData = &comp_data;
-	while(uncomp_offset < imageSize)
+
+	u32 remaining = (u32)imageSize;
+	const u8* srcPtr = source.data();
+	lzx_flush_compression(enc);
+	while( (u32)(srcPtr - source.data()) < (u32)imageSize )
 	{
-		// get uncompressed data to compress
-		s32 uncomp_block_size = (imageSize - uncomp_offset > uncomp_size) ? uncomp_size : imageSize - uncomp_offset;
-		basefileIn.get(uncomp_data, uncomp_offset, uncomp_block_size);
-		uncomp_offset += uncomp_block_size;
-		
-		// do compression of data
-		if( !LdicCompress(ctx, uncomp_data, uncomp_block_size, NULL, max_comp_size) )
+		u32 take = ((u32)uncomp_size < remaining) ? (u32)uncomp_size : remaining;
+		if( lzx_compress_next_block(enc, &srcPtr, take, &remaining) != 0 )
 		{
-			delete[] uncomp_data;
+			lzx_destroy_compression(enc);
 			return false;
 		}
 	}
-	delete[] uncomp_data;
-	if( !LdicFlushCompressorOutput(ctx) )
-		return false;
-	if( !LdicDestroyCompression(ctx) )
-		return false;
+	lzx_flush_compression(enc);
+	u32 encodedSize = enc->output_buffer_size;
+	lzx_destroy_compression(enc);
+
+	DataBlock comp_data;
+	{
+		u32 pos = 0;
+		s32 out_offset = 0;
+		while( pos + 4 <= encodedSize )
+		{
+			u32 cs = encoded[pos] | (encoded[pos+1] << 8);
+			pos += 4;                       // skip both little-endian sizes
+			if( cs == 0 || pos + cs > encodedSize )
+				break;
+			u16 beSize = (u16)cs;
+			beSize = GET16BE(&beSize);
+			comp_data.set16(beSize, out_offset);
+			comp_data.set(&encoded[pos], out_offset + 2, cs);
+			out_offset += 2 + (s32)cs;
+			pos += cs;
+		}
+	}
 	
 	// now split compressed data into hashed blocks
 	// (the hash will be calculated later)
