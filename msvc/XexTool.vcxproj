@@ -59,7 +59,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\src;..\src\lzx;..\third_party\XeCrypt;..\third_party\libmspack\libmspack;..\third_party\tinyxml2;..\third_party\libmspack\libmspack\mspack;..\third_party\libLZX;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\src\lzx;..\third_party\XeCrypt;..\third_party\tinyxml2;..\third_party\libLZX;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
@@ -73,7 +73,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
-      <AdditionalIncludeDirectories>..\src;..\src\lzx;..\third_party\XeCrypt;..\third_party\libmspack\libmspack;..\third_party\tinyxml2;..\third_party\libmspack\libmspack\mspack;..\third_party\libLZX;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\src\lzx;..\third_party\XeCrypt;..\third_party\tinyxml2;..\third_party\libLZX;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
@@ -87,7 +87,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\src;..\src\lzx;..\third_party\XeCrypt;..\third_party\libmspack\libmspack;..\third_party\tinyxml2;..\third_party\libmspack\libmspack\mspack;..\third_party\libLZX;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\src\lzx;..\third_party\XeCrypt;..\third_party\tinyxml2;..\third_party\libLZX;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
@@ -101,7 +101,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
-      <AdditionalIncludeDirectories>..\src;..\src\lzx;..\third_party\XeCrypt;..\third_party\libmspack\libmspack;..\third_party\tinyxml2;..\third_party\libmspack\libmspack\mspack;..\third_party\libLZX;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\src\lzx;..\third_party\XeCrypt;..\third_party\tinyxml2;..\third_party\libLZX;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
@@ -130,15 +130,12 @@
     <ClCompile Include="..\src\XexWriter.cpp" />
     <ClCompile Include="..\src\base64.cpp" />
     <ClCompile Include="..\src\main.cpp" />
-    <ClCompile Include="..\src\lzx\XexUnpack.cpp" />
+    <ClCompile Include="..\src\lzx\XexLzx.cpp" />
     <ClCompile Include="..\third_party\tinyxml2\tinyxml2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="lzx.vcxproj">
       <Project>{DB36AC53-4877-558F-A04F-E0E08DAAEBA5}</Project>
-    </ProjectReference>
-    <ProjectReference Include="mspack.vcxproj">
-      <Project>{6BEF2089-3825-5C2C-AA92-B54C158CB9C0}</Project>
     </ProjectReference>
     <ProjectReference Include="xecrypt.vcxproj">
       <Project>{2EA051D2-ABDF-5D45-9577-EBF505912309}</Project>

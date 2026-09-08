@@ -96,6 +96,7 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\third_party\libLZX\lzx\lzx_decoder.c" />
     <ClCompile Include="..\third_party\libLZX\lzx\lzx_encoder.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

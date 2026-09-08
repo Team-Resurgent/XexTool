@@ -10,7 +10,7 @@
 #include "DataBlock.h"
 #include "Endian.h"
 #include "XexImageEntryTypes.h"
-#include "XexUnpack.h"
+#include "XexLzx.h"
 #include "lzx/lzx.h"
 
 /*
@@ -224,13 +224,16 @@ fclose(fd);
 
 	basefileOut.clear();
 	s32 window_size = unpackInfo.get32(8);
-	s32 max_uncomp_size = 0;
+	s32 max_uncomp_size = 0x8000;
 
-	// The 16-bit sizes below are XexTool's own framing; the payloads they
-	// delimit form one continuous LZX stream whose window carries across them.
-	// Gather that stream here and decompress it in one pass at the end, rather
-	// than per chunk, which would reset the window.
-	std::vector<u8> lzxStream;
+	// One decoder for the whole basefile: the chunks below are pieces of a
+	// single LZX stream and the window carries across them.
+	XexLzxDecoder* decoder = XexLzxCreate((u32)window_size);
+	if( decoder == NULL )
+	{
+		fprintf(stderr, "XexLzxCreate failed for window 0x%X\n", (unsigned)window_size);
+		return false;
+	}
 	
 	// unpacks blocks at a time, each block has multiple smaller blocks to decompress too
 //s32 accumulate;
@@ -295,7 +298,13 @@ fclose(fd);
 			if(uncomp_size > imageSize-output_offset)
 				uncomp_size = imageSize-output_offset;
 
-			lzxStream.insert(lzxStream.end(), comp_ptr, comp_ptr + comp_size);
+			if( !XexLzxDecodeChunk(decoder, comp_ptr, comp_size,
+			                       uncomp_ptr, uncomp_size) )
+			{
+				success = false;
+				goto finish_up;
+			}
+			basefileOut.set(uncomp_ptr, output_offset, uncomp_size);
 			output_offset += uncomp_size;
 			comp_ptr += comp_size;
 		}
@@ -307,20 +316,8 @@ fclose(fd);
 		block_data = NULL;
 	}
 	
-	// decompress the whole stream in one pass
-	if(success && imageSize > 0)
-	{
-		std::vector<u8> out((size_t)imageSize);
-		u32 lzxError = 0;
-		LZXUnpack(lzxStream.data(), (u32)lzxStream.size(),
-		          out.data(), (u32)imageSize, (u32)window_size, lzxError);
-		if(lzxError != 0)
-			success = false;
-		else
-			basefileOut.set(out.data(), 0, imageSize);
-	}
-
 finish_up:
+	XexLzxDestroy(decoder);
 	if(block_data) delete[] block_data;
 	if(uncomp_data)delete[] uncomp_data;
 	return success;
@@ -354,7 +351,7 @@ bool XexPacker::unpackDeltaCompressed(DataBlock& basefileOut, const DataBlock& b
 	unpack_info.dataSize = unpackInfo.get32(12);
 	unpackInfo.get(unpack_info.hash, 16, sizeof(XexHash));
 	
-	s32 max_uncomp_size = 0;
+	s32 max_uncomp_size = 0x8000;
 	
 	// unpacks blocks at a time, each block has multiple smaller blocks to decompress too
 	s32 input_offset = 0;
