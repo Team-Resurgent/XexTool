@@ -124,7 +124,10 @@ static bool readElf(const bytes& b, u32& outBase, std::vector<ElfSection>& outSe
 	if (e_shoff == 0 || e_shstrndx >= e_shnum) { err = "ELF has no section headers"; return false; }
 	u32 strtabOff = shField(b, e_shoff, e_shentsize, e_shstrndx, 4);   // sh_offset of shstrtab
 
-	static const char* SKIP[] = { ".eh_frame", ".comment", ".note", ".ARM." };
+	// .eh_frame / .eh_frame_hdr ARE carried across: the C++ exception runtime
+	// (libunwind) reads .eh_frame at runtime. The linker script places it on its
+	// own page well past the PE headers, so the old tiny-RVA collision is gone.
+	static const char* SKIP[] = { ".comment", ".note", ".ARM." };
 
 	for (u16 i = 0; i < e_shnum; i++) {
 		u32 nm    = shField(b, e_shoff, e_shentsize, i, 0);
