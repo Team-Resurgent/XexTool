@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include "XexTool.h"
 #include "XGetopt.h"
+#include "ElfPacker.h"
 #include "tinyxml2.h"
 
 #include <iostream>
@@ -79,7 +80,10 @@ const char G_USAGE[]="Usage:    XexTool <options> <xex filename>\n"
 					"\n"
 					"If \"-o\" is not used, the original xex file will be altered.\n"
 					"Multiple options can be given at once, eg: \"-m d -r mrl\".\n"
-					"If no options are given, a shortened xex info list will be printed.\n";
+					"If no options are given, a shortened xex info list will be printed.\n"
+					"\n"
+					"          pack <input.elf> -o <output.xex>  = build a xex from a linked ELF\n"
+					"               (run \"XexTool pack --help\" for its options)\n";
 
 
 // returns: number of bytes gotten from string
@@ -123,7 +127,12 @@ int main(int argc, char* argv[])
 		printf("%s\n", G_USAGE);
 		return 1;
 	}
-	
+
+	// "pack" sub-command: build a xex from a linked ELF. Parsed before the
+	// getopt loop so it never collides with the xex-editing options.
+	if(strcmp(argv[1], "pack") == 0)
+		return runPackCommand(argc, argv);
+
 	// filenames
 	char xex_filename[260];
 	char xexp_filename[260];
