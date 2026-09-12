@@ -10,6 +10,7 @@
 #include "XexTool.h"
 #include "XGetopt.h"
 #include "ElfPacker.h"
+#include "XexGenStubs.h"
 #include "tinyxml2.h"
 
 #include <iostream>
@@ -132,6 +133,11 @@ int main(int argc, char* argv[])
 	// getopt loop so it never collides with the xex-editing options.
 	if(strcmp(argv[1], "pack") == 0)
 		return runPackCommand(argc, argv);
+
+	// "genstubs" sub-command: generate PPC import thunks + a JSON import
+	// manifest for the kernel functions a modern (clang) title calls.
+	if(strcmp(argv[1], "genstubs") == 0)
+		return runGenStubsCommand(argc, argv);
 
 	// filenames
 	char xex_filename[260];
