@@ -4,7 +4,7 @@
 
 #include "XexWriter.h"
 #include "Xex.h"
-#include "Endian.h"
+#include "XexEndian.h"
 #include "XexPacker.h"
 #include "XexData.h"
 #include "XexHeader.h"
@@ -42,15 +42,15 @@ bool XexWriter::write(const Xex& xex, FILE* fd)
 	void* data = NULL;
 	int size = 0;
 	if( fseek(fd, 0, SEEK_SET) != 0 ) { return false; }
-	if( !write(xex, (void*)data, size) )
+	// the cast here produced an rvalue, which cannot bind to the void*&
+	// parameter; pass the variable itself
+	if( !write(xex, data, size) )
 		return false;
-	if( fwrite(data, 1, size, fd) != size )
-	{
-		delete[] data;
-		return false;
-	}
-	delete[] data;
-	return true;
+	bool ok = ((int)fwrite(data, 1, size, fd) == size);
+	// the buffer is allocated as bytes, so delete it as bytes rather than
+	// through a void*, which is undefined
+	delete[] (u8*)data;
+	return ok;
 }
 
 // if successful, 'data' needs to be freed
@@ -90,7 +90,7 @@ bool XexWriter::write(const Xex& xex, void*& data, int& size)
 // what is this bit for again?! :P
 		basefile_block = xex_basefile_block;
 		u16 enc_type = (xex.isEncrypted()) ? 1 : 0;
-		u16 comp_type;
+		u16 comp_type = 0;
 		if( xex.isBinary() ||
 			xex.isRaw() )
 			comp_type = 1;
@@ -622,7 +622,7 @@ void XexWriter::getImageEntry(XexImageEntry* headers, u8* data, s32 dataSize, s3
 		DataBlock import_libs;
 		const s32 names_size = 1024;
 		char* names = new char[names_size];
-		char* name_ptr = names;
+		char lib_name[64];
 		memset(names, 0, names_size);
 		Version32 version;
 		Version32 min_version;
@@ -635,11 +635,14 @@ void XexWriter::getImageEntry(XexImageEntry* headers, u8* data, s32 dataSize, s3
 		s32 name_size = 0;
 		for(s32 lib_num=0; lib_num<xex.numImportLibraries(); lib_num++)
 		{
-			if( xex.getImportLibrary(lib_num, name_ptr, version, min_version, addresses, module_number, module_index) )
+			if( xex.getImportLibrary(lib_num, lib_name, version, min_version, addresses, module_number, module_index) )
 			{
 				// add import libraries name sizes
-				name_size += ((s32)strlen(name_ptr) + 4) & (-4);
-				name_ptr = names + name_size;
+				s32 name_len = (s32)strlen(lib_name);
+				if( name_size + (((name_len + 4) & (-4))) > names_size )
+					break;						// no room left in the name table
+				memcpy(names + name_size, lib_name, name_len);
+				name_size += (name_len + 4) & (-4);
 			}
 		}
 		
@@ -653,7 +656,7 @@ void XexWriter::getImageEntry(XexImageEntry* headers, u8* data, s32 dataSize, s3
 		s32 lib_offset = 12 + name_size;
 		for(s32 lib_num=0; lib_num<xex.numImportLibraries(); lib_num++)
 		{
-			if( !xex.getImportLibrary(lib_num, names, version, min_version, addresses, module_number, module_index) )
+			if( !xex.getImportLibrary(lib_num, lib_name, version, min_version, addresses, module_number, module_index) )
 				break;
 			s32 num_addresses = addresses.size() / 4;
 			s32 lib_size = sizeof(ImportLibraryEntry) - 4 + addresses.size();

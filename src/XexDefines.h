@@ -34,7 +34,7 @@
 #define _XEX_DEFINES_H_
 
 #include "types.h"
-#include "Endian.h"
+#include "XexEndian.h"
 //#include "KernelDefines.h"
 
 //typedef u8 XexHash[20];

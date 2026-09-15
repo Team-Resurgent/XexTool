@@ -7,7 +7,7 @@
 //
 #pragma once
 
-#include "XeCrypt.h"
+#include "xecrypt.h"
 
 inline void XeCryptRotSumSha(const unsigned char* pbInp1, unsigned int cbInp1,
                              const unsigned char* pbInp2, unsigned int cbInp2,

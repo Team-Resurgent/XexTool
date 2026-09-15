@@ -2,7 +2,7 @@ name: Build XexTool
 
 on:
   push:
-    branches: [main, master, v2]
+    branches: [main]
     tags:
       - 'v*'
   pull_request:
@@ -51,6 +51,9 @@ jobs:
 
       - name: Build
         run: cmake --build build --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build --build-config Release --output-on-failure
 
       - name: Locate the binary
         id: bin
