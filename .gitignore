@@ -15,6 +15,7 @@ Win32/
 
 # CMake (`cmake -B build`) and the VS solution OutDir (`msvc/build`)
 build/
+build-ref/
 build-cmake/
 cmake-build-*/
 CMakeCache.txt
