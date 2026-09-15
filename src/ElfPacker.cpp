@@ -327,10 +327,10 @@ static void buildPageDescriptors(u32 base, const std::vector<ElfSection>& secs, 
 	for (size_t i = 0; i < kinds.size(); i++) if (kinds[i] == SECTIONINFO_CODE) haveCode = true;
 	if (!haveCode && !kinds.empty()) { kinds[0] = SECTIONINFO_CODE; forced = true; }
 
-	for (size_t i = 0; i < kinds.size(); i++) {
-		if (!out.empty() && out.back().second == kinds[i]) out.back().first++;
-		else out.push_back(std::make_pair(1u, kinds[i]));
-	}
+	// One HV descriptor per page, like ImageXex. Coalescing (e.g. 6xCODE)
+	// makes a hash chain the kit rejects with LDRX C0000221 after -m d.
+	for (size_t i = 0; i < kinds.size(); i++)
+		out.push_back(std::make_pair(1u, kinds[i]));
 	if (sharedCodeWrite)
 		notes.push_back("a writable section shares a page with code; align the writable region (.data/.bss) to the page size to map it read-write");
 	if (forced)
@@ -388,9 +388,13 @@ static bytes buildImportLibraries(const std::vector<std::pair<std::string, std::
 		u32 count = (u32)records.size();
 		put_be32(libs, 0x28 + count * 4);   // size
 		put_zeros(libs, 0x14);              // next_import_digest
-		put_be32(libs, 0);                  // id
-		put_be32(libs, 0);                  // version_value
-		put_be32(libs, 0);                  // version_min_value
+		u32 id = 0;
+		if (imports[i].first == "xboxkrnl.exe") id = 0x45DC17E0u;
+		else if (imports[i].first == "xam.xex") id = 0xFCA15C76u;
+		else if (imports[i].first == "xbdm.xex") id = 0xECEB8109u;
+		put_be32(libs, id);                 // HV export-table id; 0 is LDRX C0000225
+		put_be32(libs, 0x20530800);         // version v2.0.21256 (ImageXex)
+		put_be32(libs, 0x20074500);         // min v2.0.1861
 		put_be16(libs, (u16)i);             // name_index
 		put_be16(libs, (u16)count);         // count
 		for (u32 r = 0; r < count; r++) put_be32(libs, records[r]);

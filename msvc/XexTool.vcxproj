@@ -113,6 +113,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\DataBlock.cpp" />
+    <ClCompile Include="..\src\ElfPacker.cpp" />
+    <ClCompile Include="..\src\XexGenStubs.cpp">
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
     <ClCompile Include="..\src\PEParser.cpp" />
     <ClCompile Include="..\src\SpecialPatches.cpp" />
     <ClCompile Include="..\src\XGetopt.c" />

@@ -189,21 +189,24 @@ int runGenStubsCommand(int argc, char* argv[])
     {
         std::vector<std::string> lines = {
             "# Generated import thunks -- do not edit.", "    .section .kthunks,\"ax\"", "" };
-        for (auto& m : moduleOrder)
-            for (auto& e : resolved[m])
+        for (size_t mi = 0; mi < moduleOrder.size(); mi++)
+            for (auto& e : resolved[moduleOrder[mi]])
             {
                 if (e.isVar) continue;
+                uint32_t rec = (uint32_t)((mi << 16) | (e.ordinal & 0xFFFF));
                 char buf[64];
-                snprintf(buf, sizeof buf, "    .long 0x%08X, 0, 0, 0", 0x01000000u | e.ordinal);
+                snprintf(buf, sizeof buf,
+                    "    .long 0x%08X, 0x%08X, 0x7D6903A6, 0x4E800420",
+                    0x01000000u | rec, 0x02000000u | rec);
                 lines.push_back("    .globl " + e.name);
                 lines.push_back(e.name + ":");
                 lines.push_back(buf);
                 lines.push_back("");
             }
-        lines.push_back("    .section .kvars,\"a\"");
+        lines.push_back("    .section .kvars,\"aw\"");
         lines.push_back("");
-        for (auto& m : moduleOrder)
-            for (auto& e : resolved[m])
+        for (size_t mi = 0; mi < moduleOrder.size(); mi++)
+            for (auto& e : resolved[moduleOrder[mi]])
             {
                 lines.push_back("    .globl __imp_" + e.name);
                 if (e.isVar)
@@ -212,7 +215,8 @@ int runGenStubsCommand(int argc, char* argv[])
                     lines.push_back("    .p2align 2");
                     lines.push_back(e.name + ":");
                 }
-                char buf[32]; snprintf(buf, sizeof buf, "    .long 0x%08X", e.ordinal);
+                uint32_t rec = (uint32_t)((mi << 16) | (e.ordinal & 0xFFFF));
+                char buf[32]; snprintf(buf, sizeof buf, "    .long 0x%08X", rec);
                 lines.push_back("__imp_" + e.name + ":");
                 lines.push_back(buf);
                 lines.push_back("");
