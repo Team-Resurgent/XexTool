@@ -84,7 +84,9 @@ const char G_USAGE[]="Usage:    XexTool <options> <xex filename>\n"
 					"If no options are given, a shortened xex info list will be printed.\n"
 					"\n"
 					"          pack <input.elf> -o <output.xex>  = build a xex from a linked ELF\n"
-					"               (run \"XexTool pack --help\" for its options)\n";
+					"               (run \"XexTool pack --help\" for its options)\n"
+					"          applyxml <input.xex> --xml <file> [-o out.xex]\n"
+					"               = apply imagexex-style <xex> XML (titleid/privilege/...)\n";
 
 
 // returns: number of bytes gotten from string
@@ -138,6 +140,9 @@ int main(int argc, char* argv[])
 	// manifest for the kernel functions a modern (clang) title calls.
 	if(strcmp(argv[1], "genstubs") == 0)
 		return runGenStubsCommand(argc, argv);
+
+	if(strcmp(argv[1], "applyxml") == 0)
+		return runApplyXmlCommand(argc, argv);
 
 	// filenames
 	char xex_filename[260];

@@ -29,4 +29,8 @@ bool packElfToXex(const std::string& elfPath, const std::string& outPath,
 // "pack" sub-command entry point: parses its own argv (with --help) and runs.
 int runPackCommand(int argc, char* argv[]);
 
+// "applyxml" sub-command: overlay an imagexex-style <xex> XML (titleid,
+// privilege, lankey, xapiheap, workspace, exportnames) onto an existing xex.
+int runApplyXmlCommand(int argc, char* argv[]);
+
 #endif // _ELF_PACKER_H_
