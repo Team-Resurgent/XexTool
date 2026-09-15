@@ -1,12 +1,25 @@
+# compiler / linker droppings
 *.obj
 *.lib
 *.exe
 *.pdb
 *.ilk
 *.user
+
+# Visual Studio
+.vs/
 Debug/
 Release/
 x64/
+Win32/
+
+# CMake (`cmake -B build`) and the VS solution OutDir (`msvc/build`)
 build/
 build-cmake/
-build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+CTestTestfile.cmake
+cmake_install.cmake
+CMakeUserPresets.json
+compile_commands.json
