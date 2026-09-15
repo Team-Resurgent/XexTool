@@ -85,6 +85,8 @@ const char G_USAGE[]="Usage:    XexTool <options> <xex filename>\n"
 					"\n"
 					"          pack <input.elf> -o <output.xex>  = build a xex from a linked ELF\n"
 					"               (run \"XexTool pack --help\" for its options)\n"
+					"          genstubs --xdk <lib dir> --names <a,b,..> -o <stubs.s>\n"
+					"               = generate PPC import thunks + JSON for a clang title\n"
 					"          applyxml <input.xex> --xml <file> [-o out.xex]\n"
 					"               = apply imagexex-style <xex> XML (titleid/privilege/...)\n";
 

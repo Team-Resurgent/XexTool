@@ -23,34 +23,51 @@
 
 ```
 XexTool <options> <xex filename>
+XexTool pack <input.elf> -o <output.xex> [options]
+XexTool genstubs --xdk <lib dir> --names <a,b,..> -o <stubs.s> [--manifest <json>]
+XexTool applyxml <input.xex> --xml <file.xml> [-o <output.xex>]
 ```
+
+Run `XexTool` with no arguments for the same list the binary prints. Options
+combine, for example `-m d -r mrl`. Without `-o` the input file is modified in
+place.
+
+### Inspect / patch a xex
 
 | option | |
 |---|---|
-| `-l` | print extended info about the xex |
-| `-p <xexp>` | patch the xex with a title update |
+| `-l` | print extended info |
+| `-p <xexp>` | patch with a title update |
 | `-b <file>` | dump the basefile |
 | `-i <file>` | dump basefile info to an IDC script |
-| `-d <dir>` | dump all resources to a directory |
-| `-o <xex>` | write the result to a new file rather than altering the input |
+| `-d <dir>` | dump all resources (`.` is allowed) |
+| `-o <xex>` | write a new file instead of altering the input |
 | `-a <path>` | add a bounding path |
 | `-u` | fix a patched xex so it no longer needs the separate patch file |
-| `-s <flags>` | apply title-specific patches; `0` lists what is available |
-| `-r <flags>` | remove limitations -- media, region, region locks, console id, dates and others; `a` removes all |
-| `-m d\|r` | force devkit or retail |
-| `-c u\|c\|b` | force uncompressed, compressed or binary |
-| `-e u\|e` | force unencrypted or encrypted |
-| `-x <flags>` | extract metadata as XML -- title, title id, icon, media id, regions and more |
+| `-s <flags>` | title-specific patches (bitflags; `0` lists them, `-1` does all) |
+| `-r <flags>` | remove limitations (see below) |
+| `-m d\|r` | force devkit or retail (`0`=`d`, `1`=`r`) |
+| `-c u\|c\|b` | force uncompressed, compressed or binary (`0`=`u`, `1`=`c`) |
+| `-e u\|e` | force unencrypted or encrypted (`0`=`u`, `1`=`e`) |
+| `-x <flags>` | extract metadata as XML (see below) |
 | `-z g\|s <file>` | get or set xex info |
 
-Options combine, for example `-m d -r mrl`. With no options a short info list is
-printed. Without `-o` the input file is modified in place.
+`-r` letters: `a` all (`mrbdiyvklcz`), `m` media, `r` region, `b` bounding path,
+`d` bounding device id, `i` console id, `y` dates, `v` keyvault privileges,
+`k` signed keyvault only, `l` minimum library versions, `c` revocation check,
+`s` disc-swap checks, `z` zero the media id.
+
+`-x` letters: `a` everything, `b` basefile type, `d` media id, `i` icon,
+`m` media, `n` name, `p` bounding path, `r` regions, `t` title id,
+`x` machine format (retail/devkit).
 
 ```
 XexTool -l default.xex
 XexTool -b basefile.bin default.xex
 XexTool -p update.xexp -o patched.xex default.xex
 XexTool -r a -o unlocked.xex default.xex
+XexTool -m d -c u -e u -o devkit.xex default.xex
+XexTool -x a default.xex
 ```
 
 ### Pack a modern (clang) title
@@ -59,17 +76,24 @@ These subcommands sit in front of the option parser. RXDK-360's clang toolset
 uses them instead of imagexex: `genstubs` then a final link, `pack` the ELF,
 `applyxml` for Image Conversion metadata, then `-m d` to sign as a devkit xex.
 
-```
-XexTool pack <input.elf> -o <output.xex> [--base 0x82000000] [--import-manifest <json>]
-XexTool genstubs --xdk <xdk lib dir> --names DbgPrint,KeBugCheck -o stubs.s [--manifest imports.json]
-XexTool applyxml <input.xex> --xml <file.xml> [-o <output.xex>]
-```
+| command | |
+|---|---|
+| `pack <elf> -o <xex>` | wrap a linked PPC32 ELF in an uncompressed, unencrypted XEX2 |
+| `pack --base <addr>` | load address (default: from the ELF, e.g. `0x82000000`) |
+| `pack --import-manifest <json>` | import records from `genstubs` |
+| `genstubs --xdk <lib dir>` | XDK `lib` dir with short-import `.lib` members |
+| `genstubs --names A,B,...` | kernel symbols the title needs |
+| `genstubs -o <stubs.s>` | PPC import thunks to assemble and link |
+| `genstubs --manifest <json>` | JSON for `pack --import-manifest` |
+| `applyxml <xex> --xml <file>` | overlay imagexex-style `<xex>` XML (title id, privileges, LAN key, heap/workspace) |
+| `applyxml -o <xex>` | write a new file; omitted overwrites the input |
 
-`pack` wraps a linked PPC32 ELF in an uncompressed, unencrypted XEX2. `genstubs`
-emits PPC import thunks and a JSON manifest from the XDK short-import `.lib`
-members. `applyxml` overlays imagexex-style `<xex>` XML (title id, privileges,
-LAN key, heap/workspace) onto an already packed xex; unspecified fields are
-left alone.
+```
+XexTool pack title.elf -o unsigned.xex --base 0x82000000 --import-manifest stubs.imports.json
+XexTool genstubs --xdk "C:\Xbox\lib" --names DbgPrint,KeBugCheck -o stubs.s --manifest stubs.imports.json
+XexTool applyxml unsigned.xex --xml title.xex.xml -o unsigned.xex
+XexTool -m d -o title.xex unsigned.xex
+```
 
 ```
 XexTool pack --help
