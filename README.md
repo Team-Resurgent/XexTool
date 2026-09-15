@@ -1,6 +1,6 @@
 # XexTool
 
-<p align="center"><b>Inspect, extract and patch Xbox 360 XEX executables</b></p>
+<p align="center"><b>Inspect, extract, patch and pack Xbox 360 XEX executables</b></p>
 
 <p align="center">
   <a href="https://github.com/Team-Resurgent/XexTool/blob/main/LICENSE.md"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
@@ -53,6 +53,30 @@ XexTool -p update.xexp -o patched.xex default.xex
 XexTool -r a -o unlocked.xex default.xex
 ```
 
+### Pack a modern (clang) title
+
+These subcommands sit in front of the option parser. RXDK-360's clang toolset
+uses them instead of imagexex: `genstubs` then a final link, `pack` the ELF,
+`applyxml` for Image Conversion metadata, then `-m d` to sign as a devkit xex.
+
+```
+XexTool pack <input.elf> -o <output.xex> [--base 0x82000000] [--import-manifest <json>]
+XexTool genstubs --xdk <xdk lib dir> --names DbgPrint,KeBugCheck -o stubs.s [--manifest imports.json]
+XexTool applyxml <input.xex> --xml <file.xml> [-o <output.xex>]
+```
+
+`pack` wraps a linked PPC32 ELF in an uncompressed, unencrypted XEX2. `genstubs`
+emits PPC import thunks and a JSON manifest from the XDK short-import `.lib`
+members. `applyxml` overlays imagexex-style `<xex>` XML (title id, privileges,
+LAN key, heap/workspace) onto an already packed xex; unspecified fields are
+left alone.
+
+```
+XexTool pack --help
+XexTool genstubs --help
+XexTool applyxml --help
+```
+
 ## Building
 
 ```
@@ -64,10 +88,14 @@ Windows, Linux and macOS, x64 and arm64:
 ```
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
+ctest --test-dir build --build-config Release --output-on-failure
 ```
 
 On Windows you can instead open `msvc/XexTool.sln` in Visual Studio 2022 or
-later, which writes to `msvc/build/<platform>/<configuration>/`.
+later, which writes to `msvc/build/<platform>/<configuration>/`. CMake and VS
+output dirs (`build/`, `msvc/build/`, `build-ref/`) are gitignored.
+
+CI runs the same six-way matrix (Windows/Linux/macOS × x64/arm64).
 
 ## Dependencies
 
