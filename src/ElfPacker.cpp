@@ -24,8 +24,19 @@ static const u32 KEY_ENTRY_POINT          = 0x00010100;
 static const u32 KEY_IMAGE_BASE_ADDRESS   = 0x00010201;
 static const u32 KEY_IMPORT_LIBRARIES     = 0x000103FF;
 static const u32 KEY_ORIGINAL_BASE_ADDRESS= 0x00010001;
+static const u32 KEY_CHECKSUM_TIMESTAMP   = 0x00018002; // low byte 0x02 == 2 dwords
+static const u32 KEY_TLS_INFO             = 0x00020104; // low byte 0x04 == 4 dwords
 static const u32 KEY_STACK_SIZE           = 0x00020200;
+static const u32 KEY_EXECUTION_INFO       = 0x00040006; // low byte 0x06 == 6 dwords
 static const u32 DEFAULT_STACK_SIZE       = 0x40000;
+// TLS_INFO slot count. With zero slots the loader gives the title no TLS slots,
+// so any KeTlsAlloc/KeTlsGetValue (which D3DX's shader compiler uses) traps.
+// A real XDK title carries 64 (TLS_MINIMUM_AVAILABLE); we do the same. No static
+// TLS data, just the slots.
+static const u32 DEFAULT_TLS_SLOTS        = 64;
+// Title id stamped into the execution-info header. A real title needs a non-zero
+// id; 'RXD\x01' is the RXDK-360 homebrew namespace.
+static const u32 DEFAULT_TITLE_ID         = 0x52584401;
 static const u32 MODULEFLAG_TITLE_MODULE  = 0x00000001;
 
 static const u32 SECTIONINFO_CODE     = 1;
@@ -259,7 +270,26 @@ static bool buildPeBasefile(u32 base, const std::vector<ElfSection>& secs, u32 e
 	put_le16(opt, PE_SUBSYSTEM_XBOX); put_le16(opt, 0);
 	put_le32(opt, 0x40000); put_le32(opt, 0x1000); put_le32(opt, 0x100000); put_le32(opt, 0x1000);
 	put_le32(opt, 0); put_le32(opt, 16);                     // LoaderFlags, NumberOfRvaAndSizes
-	put_zeros(opt, 16 * 8);                                  // data directories
+	// data directories (16 x {VirtualAddress, Size}). Only the exception
+	// directory (index 3) is populated, and only when a .pdata section is present
+	// -- MS-compiled objects contribute .pdata (RUNTIME_FUNCTION table) + .xdata,
+	// and the console kernel's RtlLookupFunctionEntry finds the frame info through
+	// this directory to dispatch MSVC C++ / SEH exceptions. Our own clang code is
+	// DWARF/.eh_frame and emits no .pdata, so this stays zero for such titles.
+	{
+		const u32 IMAGE_DIRECTORY_ENTRY_EXCEPTION = 3;
+		bytes dirs(16 * 8, 0);
+		for (size_t i = 0; i < secs.size(); i++) {
+			if (secs[i].name == ".pdata") {
+				u32 o = IMAGE_DIRECTORY_ENTRY_EXCEPTION * 8;
+				u32 rva = secs[i].vaddr - base, sz = secs[i].memsize;
+				dirs[o+0]=u8(rva); dirs[o+1]=u8(rva>>8); dirs[o+2]=u8(rva>>16); dirs[o+3]=u8(rva>>24);
+				dirs[o+4]=u8(sz);  dirs[o+5]=u8(sz>>8);  dirs[o+6]=u8(sz>>16);  dirs[o+7]=u8(sz>>24);
+				break;
+			}
+		}
+		opt.insert(opt.end(), dirs.begin(), dirs.end());
+	}
 	if (opt.size() != PE_SIZEOF_OPTIONAL_HEADER) { err = "internal: optional header size"; return false; }
 
 	bytes sec_hdrs;
@@ -299,6 +329,19 @@ static bytes buildBasefileFormat(u32 imageSize, u32 zeroSize)
 	put_be16(b, 0);               // encType (unencrypted)
 	put_be16(b, 1);               // compType (uncompressed)
 	put_be32(b, imageSize); put_be32(b, zeroSize);
+	return b;
+}
+
+// xex2_opt_execution_info (0x18 bytes): the title identity xenia reads. Layout:
+// media_id, version, base_version, title_id, platform, exec_table, disc_number,
+// disc_count, savegame_id. Only title_id matters here (it must be non-zero);
+// disc 1/1 is the sensible default for a single-file title.
+static bytes buildExecutionInfo(u32 titleId)
+{
+	bytes b;
+	put_be32(b, 0); put_be32(b, 0); put_be32(b, 0); put_be32(b, titleId);
+	b.push_back(0); b.push_back(0); b.push_back(1); b.push_back(1);
+	put_be32(b, 0);
 	return b;
 }
 
@@ -515,10 +558,24 @@ bool packElfToXex(const std::string& elfPath, const std::string& outPath,
 		{ KEY_ORIGINAL_BASE_ADDRESS, loadBase },
 		{ KEY_STACK_SIZE, DEFAULT_STACK_SIZE },
 	};
+	// offset blocks placed after the security info; the directory records the
+	// file offset of each. CHECKSUM_TIMESTAMP (checksum, timestamp) is a header
+	// every real XEX carries; the values are not verified, so zero/zero is fine.
+	// TLS_INFO gives the title its TLS slots (see DEFAULT_TLS_SLOTS) and
+	// EXECUTION_INFO stamps the title id.
+	bytes checksumTimestamp; put_be32(checksumTimestamp, 0); put_be32(checksumTimestamp, 0);
+	bytes tlsInfo;
+	put_be32(tlsInfo, DEFAULT_TLS_SLOTS); put_be32(tlsInfo, 0);
+	put_be32(tlsInfo, 0); put_be32(tlsInfo, 0);
+	bytes executionInfo = buildExecutionInfo(DEFAULT_TITLE_ID);
+
 	struct OffBlock { u32 key; const bytes* data; };
 	std::vector<OffBlock> offBlocks;
-	OffBlock ob0; ob0.key = KEY_BASEFILE_FORMAT; ob0.data = &basefileFormat; offBlocks.push_back(ob0);
-	if (haveImports) { OffBlock ob1; ob1.key = KEY_IMPORT_LIBRARIES; ob1.data = &importBlock; offBlocks.push_back(ob1); }
+	OffBlock ob; ob.key = KEY_BASEFILE_FORMAT;      ob.data = &basefileFormat;    offBlocks.push_back(ob);
+	           ob.key = KEY_CHECKSUM_TIMESTAMP;   ob.data = &checksumTimestamp; offBlocks.push_back(ob);
+	           ob.key = KEY_TLS_INFO;             ob.data = &tlsInfo;           offBlocks.push_back(ob);
+	           ob.key = KEY_EXECUTION_INFO;       ob.data = &executionInfo;     offBlocks.push_back(ob);
+	if (haveImports) { ob.key = KEY_IMPORT_LIBRARIES; ob.data = &importBlock;   offBlocks.push_back(ob); }
 
 	u32 nEntries = 4 + (u32)offBlocks.size();
 	u32 headerSize = 0x18 + nEntries * 8;
@@ -536,9 +593,15 @@ bool packElfToXex(const std::string& elfPath, const std::string& outPath,
 	put_be32(out, 0);                     // sizeOfDiscardableHeaders
 	put_be32(out, secOff);                // securityInfoOffset
 	put_be32(out, nEntries);
-	// directory
-	for (int i = 0; i < 4; i++) { put_be32(out, inlines[i].key); put_be32(out, inlines[i].val); }
-	for (size_t i = 0; i < offBlocks.size(); i++) { put_be32(out, offBlocks[i].key); put_be32(out, blockOffsets[i]); }
+	// directory: inline-value keys carry their value, offset blocks carry a file
+	// offset. It must be sorted by key ascending -- the console loader
+	// binary-searches it, so an unsorted table makes it miss headers and reject
+	// the image (xenia linear-scans and does not care).
+	std::vector<std::pair<u32, u32> > dir;
+	for (int i = 0; i < 4; i++) dir.push_back(std::make_pair(inlines[i].key, inlines[i].val));
+	for (size_t i = 0; i < offBlocks.size(); i++) dir.push_back(std::make_pair(offBlocks[i].key, blockOffsets[i]));
+	std::sort(dir.begin(), dir.end());
+	for (size_t i = 0; i < dir.size(); i++) { put_be32(out, dir[i].first); put_be32(out, dir[i].second); }
 	if (out.size() != secOff) { err = "internal: header size"; return false; }
 	out.insert(out.end(), security.begin(), security.end());
 	for (size_t i = 0; i < offBlocks.size(); i++) out.insert(out.end(), offBlocks[i].data->begin(), offBlocks[i].data->end());
