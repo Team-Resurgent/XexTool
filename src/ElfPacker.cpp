@@ -71,6 +71,7 @@ static void put_zeros(bytes& b, size_t n) { b.insert(b.end(), n, 0); }
 
 static u16 rd_be16(const u8* p) { return u16((p[0] << 8) | p[1]); }
 static u32 rd_be32(const u8* p) { return (u32(p[0]) << 24) | (u32(p[1]) << 16) | (u32(p[2]) << 8) | p[3]; }
+static u64 rd_be64(const u8* p) { return (u64(rd_be32(p)) << 32) | rd_be32(p + 4); }
 
 static u32 align_up(u32 v, u32 a) { return (v + a - 1) & ~(a - 1); }
 
@@ -101,39 +102,64 @@ static bool readFile(const std::string& path, bytes& out, std::string& err)
 	return true;
 }
 
-// section header field accessors (ELF32 big-endian, 40-byte shdr)
-static u32 shField(const bytes& b, u32 shoff, u32 shentsize, u32 i, int field)
+// Section-header field accessor, big-endian, by logical field index:
+//   0 name, 1 type, 2 flags, 3 addr, 4 offset, 5 size, 6 link, 7 info,
+//   8 addralign, 9 entsize.
+// ELF32 (40-byte Shdr) stores every field as a 4-byte word at index*4. ELF64
+// (64-byte Shdr) widens flags/addr/offset/size/addralign/entsize to 8 bytes and
+// shifts the later fields, so the offset and width differ per field. The ppc64
+// (ILP32-on-ppc64) toolchain emits ELFCLASS64 images; narrowing each (<=4GB)
+// field to u32 is safe for a 0x82000000 image.
+static u32 shField(const bytes& b, u32 shoff, u32 shentsize, u32 i, int field, bool is64)
 {
-	return rd_be32(&b[shoff + i * shentsize + field * 4]);
+	u32 base = shoff + i * shentsize;
+	if (is64) {
+		static const u8 OFF64[10] = { 0, 4, 8, 16, 24, 32, 40, 44, 48, 56 };
+		static const u8 W64[10]   = { 4, 4, 8,  8,  8,  8,  4,  4,  8,  8 };
+		const u8* p = &b[base + OFF64[field]];
+		return W64[field] == 8 ? (u32)rd_be64(p) : rd_be32(p);
+	}
+	return rd_be32(&b[base + field * 4]);
 }
 
 static bool readElf(const bytes& b, u32& outBase, std::vector<ElfSection>& outSecs,
                     u32& outEntry, std::string& err)
 {
 	if (b.size() < 0x34 || b[0] != 0x7f || b[1] != 'E' || b[2] != 'L' || b[3] != 'F') { err = "not an ELF file"; return false; }
-	if (b[4] != 1 || b[5] != 2) { err = "expected a 32-bit big-endian ELF (PPC)"; return false; }
+	// Accept a big-endian PPC image of either class: the pre-cutover ppc32 path
+	// produced ELFCLASS32, the ILP32-on-ppc64 toolchain produces ELFCLASS64.
+	bool is64 = (b[4] == 2);
+	if (b[5] != 2 || (b[4] != 1 && b[4] != 2)) { err = "expected a big-endian 32- or 64-bit ELF (PPC)"; return false; }
+	if (b.size() < (is64 ? 0x40u : 0x34u)) { err = "ELF truncated"; return false; }
 
-	u32 e_entry = rd_be32(&b[0x18]);
-	u32 e_phoff = rd_be32(&b[0x1C]);
-	u32 e_shoff = rd_be32(&b[0x20]);
-	u16 e_phentsize = rd_be16(&b[0x2A]);
-	u16 e_phnum = rd_be16(&b[0x2C]);
-	u16 e_shentsize = rd_be16(&b[0x2E]);
-	u16 e_shnum = rd_be16(&b[0x30]);
-	u16 e_shstrndx = rd_be16(&b[0x32]);
+	// ELF64 widens e_entry/e_phoff/e_shoff to 8 bytes and shifts the half-word
+	// fields; every value still fits in 32 bits for a 0x82000000 image.
+	u32 e_entry, e_phoff, e_shoff;
+	u16 e_phentsize, e_phnum, e_shentsize, e_shnum, e_shstrndx;
+	if (is64) {
+		e_entry = (u32)rd_be64(&b[0x18]); e_phoff = (u32)rd_be64(&b[0x20]); e_shoff = (u32)rd_be64(&b[0x28]);
+		e_phentsize = rd_be16(&b[0x36]); e_phnum = rd_be16(&b[0x38]);
+		e_shentsize = rd_be16(&b[0x3A]); e_shnum = rd_be16(&b[0x3C]); e_shstrndx = rd_be16(&b[0x3E]);
+	} else {
+		e_entry = rd_be32(&b[0x18]); e_phoff = rd_be32(&b[0x1C]); e_shoff = rd_be32(&b[0x20]);
+		e_phentsize = rd_be16(&b[0x2A]); e_phnum = rd_be16(&b[0x2C]);
+		e_shentsize = rd_be16(&b[0x2E]); e_shnum = rd_be16(&b[0x30]); e_shstrndx = rd_be16(&b[0x32]);
+	}
 
 	// image base = lowest PT_LOAD vaddr (what --image-base set)
 	bool haveBase = false; u32 imageBase = 0;
+	// ELF64 Phdr is 56 bytes with p_vaddr at offset 16; ELF32 Phdr is 32 bytes
+	// with p_vaddr at offset 8.
 	for (u16 i = 0; i < e_phnum; i++) {
 		u32 o = e_phoff + i * e_phentsize;
-		if (o + 12 > b.size()) break;
+		if (o + (is64 ? 24u : 12u) > b.size()) break;
 		u32 p_type = rd_be32(&b[o]);
-		u32 p_vaddr = rd_be32(&b[o + 8]);
+		u32 p_vaddr = is64 ? (u32)rd_be64(&b[o + 16]) : rd_be32(&b[o + 8]);
 		if (p_type == PT_LOAD) { if (!haveBase || p_vaddr < imageBase) { imageBase = p_vaddr; haveBase = true; } }
 	}
 
 	if (e_shoff == 0 || e_shstrndx >= e_shnum) { err = "ELF has no section headers"; return false; }
-	u32 strtabOff = shField(b, e_shoff, e_shentsize, e_shstrndx, 4);   // sh_offset of shstrtab
+	u32 strtabOff = shField(b, e_shoff, e_shentsize, e_shstrndx, 4, is64);   // sh_offset of shstrtab
 
 	// .eh_frame / .eh_frame_hdr ARE carried across: the C++ exception runtime
 	// (libunwind) reads .eh_frame at runtime. The linker script places it on its
@@ -141,12 +167,12 @@ static bool readElf(const bytes& b, u32& outBase, std::vector<ElfSection>& outSe
 	static const char* SKIP[] = { ".comment", ".note", ".ARM." };
 
 	for (u16 i = 0; i < e_shnum; i++) {
-		u32 nm    = shField(b, e_shoff, e_shentsize, i, 0);
-		u32 typ   = shField(b, e_shoff, e_shentsize, i, 1);
-		u32 flags = shField(b, e_shoff, e_shentsize, i, 2);
-		u32 addr  = shField(b, e_shoff, e_shentsize, i, 3);
-		u32 off   = shField(b, e_shoff, e_shentsize, i, 4);
-		u32 size  = shField(b, e_shoff, e_shentsize, i, 5);
+		u32 nm    = shField(b, e_shoff, e_shentsize, i, 0, is64);
+		u32 typ   = shField(b, e_shoff, e_shentsize, i, 1, is64);
+		u32 flags = shField(b, e_shoff, e_shentsize, i, 2, is64);
+		u32 addr  = shField(b, e_shoff, e_shentsize, i, 3, is64);
+		u32 off   = shField(b, e_shoff, e_shentsize, i, 4, is64);
+		u32 size  = shField(b, e_shoff, e_shentsize, i, 5, is64);
 		if (!(flags & SHF_ALLOC) || size == 0) continue;
 
 		std::string secname;
@@ -175,25 +201,28 @@ static bool readElf(const bytes& b, u32& outBase, std::vector<ElfSection>& outSe
 // name -> virtual address, from the ELF symtab (defined globals)
 static void readSymbolAddrs(const bytes& b, std::vector<std::pair<std::string, u32> >& out)
 {
-	u32 e_shoff = rd_be32(&b[0x20]);
-	u16 e_shentsize = rd_be16(&b[0x2E]);
-	u16 e_shnum = rd_be16(&b[0x30]);
+	bool is64 = (b[4] == 2);
+	u32 e_shoff; u16 e_shentsize, e_shnum;
+	if (is64) { e_shoff = (u32)rd_be64(&b[0x28]); e_shentsize = rd_be16(&b[0x3A]); e_shnum = rd_be16(&b[0x3C]); }
+	else      { e_shoff = rd_be32(&b[0x20]);      e_shentsize = rd_be16(&b[0x2E]); e_shnum = rd_be16(&b[0x30]); }
 	u32 symOff = 0, symSize = 0, symEnt = 0, strOff = 0; bool have = false;
 	for (u16 i = 0; i < e_shnum; i++) {
-		if (shField(b, e_shoff, e_shentsize, i, 1) == SHT_SYMTAB) {
-			symOff = shField(b, e_shoff, e_shentsize, i, 4);
-			symSize = shField(b, e_shoff, e_shentsize, i, 5);
-			u32 link = shField(b, e_shoff, e_shentsize, i, 6);   // sh_link -> strtab
-			symEnt = shField(b, e_shoff, e_shentsize, i, 9);
-			strOff = shField(b, e_shoff, e_shentsize, link, 4);
+		if (shField(b, e_shoff, e_shentsize, i, 1, is64) == SHT_SYMTAB) {
+			symOff = shField(b, e_shoff, e_shentsize, i, 4, is64);
+			symSize = shField(b, e_shoff, e_shentsize, i, 5, is64);
+			u32 link = shField(b, e_shoff, e_shentsize, i, 6, is64);   // sh_link -> strtab
+			symEnt = shField(b, e_shoff, e_shentsize, i, 9, is64);
+			strOff = shField(b, e_shoff, e_shentsize, link, 4, is64);
 			have = true;
 		}
 	}
 	if (!have || symEnt == 0) return;
+	// ELF64 Sym is 24 bytes with st_value at offset 8 (8 bytes); ELF32 Sym is
+	// 16 bytes with st_value at offset 4.
 	for (u32 k = 0; k < symSize / symEnt; k++) {
 		u32 o = symOff + k * symEnt;
 		u32 st_name = rd_be32(&b[o]);
-		u32 st_value = rd_be32(&b[o + 4]);
+		u32 st_value = is64 ? (u32)rd_be64(&b[o + 8]) : rd_be32(&b[o + 4]);
 		if (st_name && st_value) {
 			std::string n;
 			for (u32 c = strOff + st_name; c < b.size() && b[c]; c++) n.push_back((char)b[c]);
@@ -631,7 +660,8 @@ bool packElfToXex(const std::string& elfPath, const std::string& outPath,
 static const char PACK_USAGE[] =
 	"Usage:    XexTool pack <input.elf> -o <output.xex> [options]\n"
 	"\n"
-	"Wrap a linked PPC32 ELF executable in an uncompressed, unencrypted devkit\n"
+	"Wrap a linked big-endian PPC ELF executable (32- or 64-bit class) in an\n"
+	"uncompressed, unencrypted devkit\n"
 	"XEX2 (the form a debug kit loads without a signature).\n"
 	"\n"
 	"Options:\n"
